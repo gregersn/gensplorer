@@ -1,32 +1,20 @@
-from PyQt5.QtWidgets import (QMainWindow,
-                             QWidget,
-                             QTabWidget,
-                             QHBoxLayout,
-                             QVBoxLayout,
-                             QPushButton,
-                             QLineEdit,
-                             QTextEdit)
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QTextEdit, QLineEdit
 
-from PyQt5.QtWidgets import QApplication
 
 from services import census
 
 
-class MainWindow(QMainWindow):
+class View(QWidget):
     def __init__(self):
         super().__init__()
         self.data = {}
         self.initUi()
 
     def initUi(self):
-        self.resize(640, 480)
-        self.central_widget = QWidget()
-
-        self.layout = QVBoxLayout(self.central_widget)
+        self.layout = QVBoxLayout()
         self.layout.addLayout(self.entry())
         self.layout.addWidget(self.output())
-
-        self.setCentralWidget(self.central_widget)
+        self.setLayout(self.layout)
 
     def entry(self):
         layout = QHBoxLayout()
@@ -48,17 +36,7 @@ class MainWindow(QMainWindow):
         census_data = census.get_census(url)
         markdown = census.census_to_markdown(**census_data)
         self.data['output'].setText(markdown)
-    
+
     def copy_census(self, event):
         self.data['output'].selectAll()
         self.data['output'].copy()
-
-
-
-
-
-if __name__ == "__main__":
-    app = QApplication([])
-    window = MainWindow()
-    window.show()
-    app.exit(app.exec_())
