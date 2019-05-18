@@ -11,7 +11,6 @@ from services import census
 
 class View(BaseView):
     def __init__(self):
-        self.data = {}
         super().__init__()
 
     def initUi(self):
@@ -19,7 +18,6 @@ class View(BaseView):
         self.layout.addLayout(self.entry())
         self.layout.addWidget(self.output())
         self.setLayout(self.layout)
-        self.error_dialog = QErrorMessage()
 
     def entry(self):
         layout = QHBoxLayout()
