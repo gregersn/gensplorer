@@ -5,15 +5,14 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout
 from PyQt5.QtWidgets import QPushButton, QTextEdit, QLineEdit
 from PyQt5.QtWidgets import QErrorMessage
 
-
+from .baseview import BaseView
 from services import census
 
 
-class View(QWidget):
+class View(BaseView):
     def __init__(self):
-        super().__init__()
         self.data = {}
-        self.initUi()
+        super().__init__()
 
     def initUi(self):
         self.layout = QVBoxLayout()
@@ -47,9 +46,6 @@ class View(QWidget):
         except census.InvalidURL as err:
             self.show_error("ERROR: URL {} is invalid".format(url))
     
-    def show_error(self, message):
-            self.error_dialog.showMessage(message)
-
     def copy_census(self, event):
         self.data['output'].selectAll()
         self.data['output'].copy()
