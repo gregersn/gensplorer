@@ -3,6 +3,7 @@ from bs4 import BeautifulSoup
 import requests
 import re
 
+from requests.exceptions import MissingSchema, InvalidURL
 
 def is_key_value_pair(tag):
     if not tag.has_attr("class"):

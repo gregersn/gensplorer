@@ -1,3 +1,6 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout
 from PyQt5.QtWidgets import QPushButton, QTextEdit, QLineEdit
 from PyQt5.QtWidgets import QErrorMessage
@@ -39,8 +42,10 @@ class View(QWidget):
             census_data = census.get_census(url)
             markdown = census.census_to_markdown(**census_data)
             self.data['output'].setText(markdown)
-        except:
-            self.show_error("Something went wrong when trying to get\n{}".format(url))
+        except census.MissingSchema as err:
+            self.show_error("ERROR: Is the URL correct?")
+        except census.InvalidURL as err:
+            self.show_error("ERROR: URL {} is invalid".format(url))
     
     def show_error(self, message):
             self.error_dialog.showMessage(message)
