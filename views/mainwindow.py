@@ -12,6 +12,7 @@ from PyQt5.QtWidgets import QApplication
 from services import census
 from .tabwidget import TabWidget
 from .census2markdown import View as CensusView
+from .gedcomsnip import View as GedcomSnip
 
 class MainWindow(QMainWindow):
     def __init__(self, settings=None):
@@ -24,6 +25,7 @@ class MainWindow(QMainWindow):
         self.central_widget = TabWidget()
 
         self.central_widget.add_tab(CensusView(), "Census")
+        self.central_widget.add_tab(GedcomSnip(), "Snip gedcom")
         self.setCentralWidget(self.central_widget)
 
 
