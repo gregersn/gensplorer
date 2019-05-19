@@ -5,7 +5,7 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout
 from PyQt5.QtWidgets import QPushButton, QTextEdit, QLineEdit
 from PyQt5.QtWidgets import QErrorMessage, QFileDialog
 from PyQt5.QtWidgets import QCompleter
-from PyQt5.Qt import QStringListModel
+from PyQt5.Qt import QStringListModel, QStandardItemModel, QStandardItem
 from PyQt5.QtCore import Qt
 
 import os
@@ -16,6 +16,27 @@ from services import gedsnip
 from services import settings
 
 
+class PersonCompleter(QCompleter):
+    ConcatenationRole = Qt.UserRole + 1
+    def __init__(self, data, parent=None):
+        super().__init__(parent)
+        self.create_model(data)
+    
+    def pathFromIndex(self, ix):
+        return ix.data(PersonCompleter.ConcatenationRole)
+    
+    def create_model(self, data):
+        def addItems(parent, elements, t=""):
+            for xref, name in elements:
+                item = QStandardItem(name)
+                data = xref
+                item.setData(data)
+                parent.appendRow(item)
+        model = QStandardItemModel(self)
+        addItems(model, data)
+        self.setModel(model)
+
+
 class View(BaseView):
     def __init__(self):
         self.gedcom = None
@@ -23,6 +44,9 @@ class View(BaseView):
         super().__init__()
 
         self.datafolder = settings.get("datafolder") or ""
+        
+        if settings.get("gedcomfile"):
+            self.readgedcom(settings.get("gedcomfile"))
 
     # Layout functions
 
@@ -63,16 +87,15 @@ class View(BaseView):
         return layout
     
     def updatesearchbox(self):
-        completer = QCompleter()
+        self.completer = PersonCompleter(self.gedcom.namelist, self)  # QCompleter()
 
-        model = QStringListModel()
-        model.setStringList(self.gedcom.namelist)
+        self.completer.setCaseSensitivity(Qt.CaseInsensitive)
 
-        completer.setModel(model)
-        completer.setCaseSensitivity(Qt.CaseInsensitive)
-        completer.setFilterMode(Qt.MatchContains)
+        self.completer.setFilterMode(Qt.MatchContains)
 
-        self.data['search'].setCompleter(completer)
+        self.completer.activated.connect(self.activated)
+
+        self.data['search'].setCompleter(self.completer)
 
 
     # Event handlers
@@ -80,7 +103,10 @@ class View(BaseView):
     def openFileNameDialog(self):
         options = QFileDialog.Options()
         # options |= QFileDialog.DontUseNativeDialog
-        filename, _ = QFileDialog.getOpenFileName(self, "Open Gedcom", self.datafolder, "Gedcom files (*.ged);;All files (*)", options=options)
+        filename, _ = QFileDialog.getOpenFileName(self, "Open Gedcom",
+                                                  self.datafolder,
+                                                  "Gedcom files (*.ged);;All files (*)",
+                                                  options=options)
 
         if not filename:
             return
@@ -90,10 +116,19 @@ class View(BaseView):
         self.datafolder = os.path.dirname(filename)
         settings.set("datafolder", self.datafolder)
 
-        self.data['filename'].setText(filename)
+        settings.set("gedcomfile", filename)
 
+        self.readgedcom(filename)
+    
+    def readgedcom(self, filename):
+        self.data['filename'].setText(filename)
         self.gedcom = gedsnip.GedcomManipulator(filename)
         self.updatesearchbox()
 
     def execute_search(self):
+        # print(dir(self.completer))
+        # print(self.completer.currentCompletion())
+        pass
+    
+    def activated(self, *args, **kwargs):
         pass

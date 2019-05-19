@@ -13,6 +13,6 @@ class GedcomManipulator(object):
         if self.names is None:
             self.names = []
             for indi in self.gedcom.individuals:
-                self.names.append(" ".join(indi.name))
+                self.names.append((indi.id, " ".join(indi.name)))
         
         return self.names
