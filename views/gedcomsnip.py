@@ -79,7 +79,7 @@ class View(BaseView):
         self.data['search'] = QLineEdit()
         layout.addWidget(self.data['search'])
 
-        searchbtn = QPushButton("Search")
+        searchbtn = QPushButton("Snip")
         searchbtn.clicked.connect(self.execute_search)
 
         layout.addWidget(searchbtn)
@@ -120,15 +120,28 @@ class View(BaseView):
 
         self.readgedcom(filename)
     
+    def saveFileNameDialog(self):
+        options = QFileDialog.Options()
+        filename, _ = QFileDialog.getSaveFileName(self, "Save Gedcom snippet",
+                                                  self.datafolder,
+                                                  "Gedcom files (*.ged);;All files (*)",
+                                                  options=options)
+        if filename:
+            print(filename)
+            return filename
+        
+        return None
+    
     def readgedcom(self, filename):
         self.data['filename'].setText(filename)
         self.gedcom = gedsnip.GedcomManipulator(filename)
         self.updatesearchbox()
 
     def execute_search(self):
-        # print(dir(self.completer))
-        # print(self.completer.currentCompletion())
-        pass
-    
+        print(self.data['search'].text())
+        filename = self.saveFileNameDialog()
+        output = self.gedcom.get_branch(self.data['search'].text())
+        output.save(filename, overwrite=True)
+
     def activated(self, *args, **kwargs):
         pass
