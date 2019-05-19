@@ -14,8 +14,9 @@ from .tabwidget import TabWidget
 from .census2markdown import View as CensusView
 
 class MainWindow(QMainWindow):
-    def __init__(self):
+    def __init__(self, settings=None):
         super().__init__()
+        self.settings = settings
         self.initUi()
 
     def initUi(self):
