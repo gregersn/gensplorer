@@ -13,16 +13,17 @@ import os
 from .baseview import BaseView
 
 from services import gedsnip
+from services import settings
 
 
 class View(BaseView):
     def __init__(self):
         self.gedcom = None
-    
+
         super().__init__()
-    
-        self.datafolder = ""
-    
+
+        self.datafolder = settings.get("datafolder") or ""
+
     # Layout functions
 
     def initUi(self):
@@ -87,6 +88,7 @@ class View(BaseView):
         assert os.path.isfile(filename)
 
         self.datafolder = os.path.dirname(filename)
+        settings.set("datafolder", self.datafolder)
 
         self.data['filename'].setText(filename)
 
