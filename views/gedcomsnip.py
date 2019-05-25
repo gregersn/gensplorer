@@ -140,8 +140,9 @@ class View(BaseView):
     def execute_search(self):
         print(self.data['search'].text())
         filename = self.saveFileNameDialog()
-        output = self.gedcom.get_branch(self.data['search'].text())
-        output.save(filename, overwrite=True)
+        if filename:
+            output = self.gedcom.get_branch(self.data['search'].text())
+            output.save(filename, overwrite=True)
 
     def activated(self, *args, **kwargs):
         pass
