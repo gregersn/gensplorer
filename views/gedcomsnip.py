@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel
 from PyQt5.QtWidgets import QPushButton, QTextEdit, QLineEdit
 from PyQt5.QtWidgets import QErrorMessage, QFileDialog
 from PyQt5.QtWidgets import QCompleter
@@ -11,6 +11,7 @@ from PyQt5.QtCore import Qt
 import os
 
 from .baseview import BaseView
+from .gedcom_snipper import Snipper
 
 from services import gedsnip
 from services import settings
@@ -18,13 +19,14 @@ from services import settings
 
 class PersonCompleter(QCompleter):
     ConcatenationRole = Qt.UserRole + 1
+
     def __init__(self, data, parent=None):
         super().__init__(parent)
         self.create_model(data)
-    
+
     def pathFromIndex(self, ix):
         return ix.data(PersonCompleter.ConcatenationRole)
-    
+
     def create_model(self, data):
         def addItems(parent, elements, t=""):
             for xref, name in elements:
@@ -44,7 +46,7 @@ class View(BaseView):
         super().__init__()
 
         self.datafolder = settings.get("datafolder") or ""
-        
+
         if settings.get("gedcomfile"):
             self.readgedcom(settings.get("gedcomfile"))
 
@@ -60,11 +62,15 @@ class View(BaseView):
         self.layout.addLayout(self.searchbox())
         # Options for what to include
 
+        # self.layout.addLayout(self.functions())
+        self.layout.addWidget(Snipper(self.gedcom, parent=self))
+
         self.setLayout(self.layout)
-    
+
     def opengedcom(self):
         layout = QHBoxLayout()
         
+        layout.addWidget(QLabel("Gedcom file:"))
         self.data['filename'] = QLineEdit()
         layout.addWidget(self.data['filename'])
 
@@ -73,19 +79,20 @@ class View(BaseView):
         layout.addWidget(openbtn)
 
         return layout
-    
+
     def searchbox(self):
         layout = QHBoxLayout()
+        layout.addWidget(QLabel("Root person:"))
         self.data['search'] = QLineEdit()
         layout.addWidget(self.data['search'])
 
-        searchbtn = QPushButton("Snip")
-        searchbtn.clicked.connect(self.execute_search)
-
-        layout.addWidget(searchbtn)
-
         return layout
-    
+
+    def functions(self):
+        layout = QHBoxLayout()
+        # layout.addLayout(self.snipfunction())
+        return layout
+
     def updatesearchbox(self):
         self.completer = PersonCompleter(self.gedcom.namelist, self)  # QCompleter()
 
@@ -99,7 +106,7 @@ class View(BaseView):
 
 
     # Event handlers
-    
+
     def openFileNameDialog(self):
         options = QFileDialog.Options()
         # options |= QFileDialog.DontUseNativeDialog
@@ -119,7 +126,7 @@ class View(BaseView):
         settings.set("gedcomfile", filename)
 
         self.readgedcom(filename)
-    
+
     def saveFileNameDialog(self):
         options = QFileDialog.Options()
         filename, _ = QFileDialog.getSaveFileName(self, "Save Gedcom snippet",
@@ -129,20 +136,13 @@ class View(BaseView):
         if filename:
             print(filename)
             return filename
-        
+
         return None
-    
+
     def readgedcom(self, filename):
         self.data['filename'].setText(filename)
         self.gedcom = gedsnip.GedcomManipulator(filename)
         self.updatesearchbox()
-
-    def execute_search(self):
-        print(self.data['search'].text())
-        filename = self.saveFileNameDialog()
-        if filename:
-            output = self.gedcom.get_branch(self.data['search'].text())
-            output.save(filename, overwrite=True)
 
     def activated(self, *args, **kwargs):
         pass

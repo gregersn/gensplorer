@@ -17,6 +17,8 @@ from .stackwidget import StackWidget
 from .census2markdown import View as CensusView
 from .gedcomsnip import View as GedcomSnip
 
+from services import settings
+
 ICONS = {
     'exit': './assets/icons/icons8-exit-96.png'
 }
@@ -43,6 +45,7 @@ class MainWindow(QMainWindow):
         self.central_widget.add_view(CensusView(), "census")
         self.central_widget.add_view(GedcomSnip(), "gedcom")
         self.setCentralWidget(self.central_widget)
+        self.central_widget.set_current(self.settings.get('current_view'))
 
     def init_menu(self):
         """Initialize the main menu."""
@@ -66,6 +69,7 @@ class MainWindow(QMainWindow):
     def view_chosen(self, t):
         data = t.data()
         self.central_widget.set_current(data)
+        self.settings.set('current_view', data)
 
     def init_toolbar(self):
         self.toolbar = self.addToolBar('Exit')

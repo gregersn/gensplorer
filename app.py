@@ -7,12 +7,14 @@ from PyQt5.QtWidgets import QApplication
 
 from views.mainwindow import MainWindow
 
+from services.settings import SETTINGS
+
 
 def main():
     """Start the app."""
     app = QApplication(sys.argv)
 
-    window = MainWindow()
+    window = MainWindow(SETTINGS)
     window.show()
     app.exit(app.exec_())
 
