@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+"""Run the app."""
 
 import sys
 from PyQt5.QtWidgets import QApplication
 
 from views.mainwindow import MainWindow
-from services import settings
 
 
 def main():
+    """Start the app."""
     app = QApplication(sys.argv)
 
     window = MainWindow()

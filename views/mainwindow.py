@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import sys
+
 from PyQt5.QtWidgets import (QMainWindow,
                              QAction,
+                             QActionGroup,
                              QMessageBox,
                              qApp)
 
@@ -10,7 +13,7 @@ from PyQt5.QtWidgets import QApplication
 from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import Qt
 
-from .tabwidget import TabWidget
+from .stackwidget import StackWidget
 from .census2markdown import View as CensusView
 from .gedcomsnip import View as GedcomSnip
 
@@ -32,13 +35,13 @@ class MainWindow(QMainWindow):
     def init_ui(self):
         """Initialize UI."""
         self.resize(640, 480)
-        self.central_widget = TabWidget()
+        self.central_widget = StackWidget()
 
         self.init_menu()
-        self.init_toolbar()
+        # self.init_toolbar()
 
-        self.central_widget.add_tab(CensusView(), "Census")
-        self.central_widget.add_tab(GedcomSnip(), "Snip gedcom")
+        self.central_widget.add_view(CensusView(), "census")
+        self.central_widget.add_view(GedcomSnip(), "gedcom")
         self.setCentralWidget(self.central_widget)
 
     def init_menu(self):
@@ -46,10 +49,23 @@ class MainWindow(QMainWindow):
         menubar = self.menuBar()
         menubar.setNativeMenuBar(False)
         filemenu = menubar.addMenu('&File')
+        filemenu.addAction(self.actions['preferences'])
         filemenu.addAction(self.actions['exit'])
+
+        viewmenu = menubar.addMenu('&View')
+        viewgroup = QActionGroup(self)
+        viewmenu.addAction(self.actions['census'])
+        viewgroup.addAction(self.actions['census'])
+        viewmenu.addAction(self.actions['gedcom'])
+        viewgroup.addAction(self.actions['gedcom'])
+        viewgroup.triggered.connect(self.view_chosen)
 
         helpmenu = menubar.addMenu("&Help")
         helpmenu.addAction(self.actions['about'])
+    
+    def view_chosen(self, t):
+        data = t.data()
+        self.central_widget.set_current(data)
 
     def init_toolbar(self):
         self.toolbar = self.addToolBar('Exit')
@@ -58,9 +74,20 @@ class MainWindow(QMainWindow):
     def init_actions(self):
         self.actions['exit'] = QAction(QIcon(ICONS['exit']), '&Exit', self)
         self.actions['exit'].setShortcut('Ctrl+Q')
+        self.actions['exit'].menuRole = QAction.QuitRole
         self.actions['exit'].triggered.connect(qApp.quit)
 
+        self.actions['preferences'] = QAction("Preferences", self)
+        self.actions['preferences'].menuRole = QAction.PreferencesRole
+
+        self.actions['gedcom'] = QAction("Gedcom", self, checkable=True)
+        self.actions['gedcom'].setData("gedcom")
+
+        self.actions['census'] = QAction("Census", self, checkable=True)
+        self.actions['census'].setData("census")
+
         self.actions['about'] = QAction("&About", self)
+        self.actions['about'].menuRole = QAction.AboutRole
         self.actions['about'].triggered.connect(self.about)
 
     def about(self):
@@ -73,7 +100,10 @@ class MainWindow(QMainWindow):
 
 
 if __name__ == "__main__":
-    APP = QApplication([])
+    APP = QApplication(sys.argv)
+    APP.setApplicationDisplayName("Gensplorer...")
+    APP.setApplicationName("Gensplorer")
+    APP.setApplicationVersion("1.0")
     WINDOW = MainWindow()
     WINDOW.show()
     APP.exit(APP.exec_())

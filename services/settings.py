@@ -1,8 +1,10 @@
+"""App settings."""
 import os
 import json
 
 
 class Settings(object):
+    """Settings container."""
     def __init__(self):
         self.settings = {}
         self.settings_file = os.path.expanduser("~/gensplorer.json")
@@ -10,31 +12,37 @@ class Settings(object):
             self.load(self.settings_file)
 
     def load(self, filename):
+        """Load from JSON file."""
         assert os.path.isfile(filename)
 
-        with open(filename, 'r') as f:
-            self.settings = json.load(f)
+        with open(filename, 'r') as settings_file:
+            self.settings = json.load(settings_file)
 
     def save(self):
-        with open(self.settings_file, 'w', newline="\n") as f:
-            json.dump(self.settings, f, indent=4)
+        """Save to JSON file."""
+        with open(self.settings_file, 'w', newline="\n") as settings_file:
+            json.dump(self.settings, settings_file, indent=4)
 
     def get(self, key):
+        """Get a settings value."""
         if key in self.settings:
             return self.settings[key]
 
         return None
 
     def set(self, key, value):
+        """Set (and overwrite) a setting."""
         self.settings[key] = value
         self.save()
 
-settings = Settings()
+SETTINGS = Settings()
 
 
 def get(key):
-    return settings.get(key)
+    """Return a value from SETTINGS."""
+    return SETTINGS.get(key)
 
 
 def set(key, value):
-    return settings.set(key, value)
+    """Set a setting."""
+    return SETTINGS.set(key, value)
