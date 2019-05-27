@@ -15,7 +15,7 @@ from PyQt5.QtCore import Qt
 
 from .stackwidget import StackWidget
 from .census2markdown import View as CensusView
-from .gedcomsnip import View as GedcomSnip
+from .gedcom import View as GedcomView
 
 from services import settings
 
@@ -43,7 +43,7 @@ class MainWindow(QMainWindow):
         # self.init_toolbar()
 
         self.central_widget.add_view(CensusView(), "census")
-        self.central_widget.add_view(GedcomSnip(), "gedcom")
+        self.central_widget.add_view(GedcomView(), "gedcom")
         self.setCentralWidget(self.central_widget)
         self.central_widget.set_current(self.settings.get('current_view'))
 

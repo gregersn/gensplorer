@@ -10,8 +10,8 @@ from PyQt5.QtCore import Qt
 
 import os
 
-from .baseview import BaseView
-from .gedcom_snipper import Snipper
+from ..baseview import BaseView
+from .snipper import Snipper
 
 from services import gedsnip
 from services import settings

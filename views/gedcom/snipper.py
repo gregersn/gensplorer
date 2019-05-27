@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QPushButton, QGroupBox, QCheckBox
 
-from .baseview import BaseView
+from ..baseview import BaseView
 
 
 class Snipper(BaseView):
