@@ -17,4 +17,8 @@ class StackWidget(QWidget):
         self.views[n] = index
     
     def set_current(self, name):
+        if name is None:
+            self.stack.setCurrentIndex(0)
+            return
+
         self.stack.setCurrentIndex(self.views[name])
