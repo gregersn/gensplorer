@@ -12,6 +12,7 @@ import os
 
 from ..baseview import BaseView
 from .snipper import Snipper
+from .cousins import Cousins
 
 from services import gedsnip
 from services import settings
@@ -63,8 +64,11 @@ class View(BaseView):
         # Options for what to include
 
         # self.layout.addLayout(self.functions())
-        self.layout.addWidget(Snipper(self.gedcom, parent=self))
+        function_layout = QHBoxLayout()
+        function_layout.addWidget(Snipper(self.gedcom, parent=self))
+        function_layout.addWidget(Cousins(self.gedcom, parent=self))
 
+        self.layout.addLayout(function_layout)
         self.setLayout(self.layout)
 
     def opengedcom(self):
@@ -94,16 +98,11 @@ class View(BaseView):
         return layout
 
     def updatesearchbox(self):
-        self.completer = PersonCompleter(self.gedcom.namelist, self)  # QCompleter()
-
+        self.completer = PersonCompleter(self.gedcom.namelist, self)
         self.completer.setCaseSensitivity(Qt.CaseInsensitive)
-
         self.completer.setFilterMode(Qt.MatchContains)
-
         self.completer.activated.connect(self.activated)
-
         self.data['search'].setCompleter(self.completer)
-
 
     # Event handlers
 

@@ -17,7 +17,6 @@ class Snipper(BaseView):
         self.setLayout(layout)
 
     def execute_snip(self):
-        print(self.options)
         filename = self.parent.saveFileNameDialog()
         if filename:
             output = self.parent.gedcom.get_branch(self.parent.data['search'].text(), **self.options)

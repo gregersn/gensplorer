@@ -16,6 +16,63 @@ class GedcomManipulator(object):
 
         return self.names
 
+    def get_cousins(self, _id, level=2):
+        """Find all cousins of given distance."""
+        root = self.gedcom[_id]
+
+        assert root is not None
+
+        atlevel = 0
+        prevqueue = [root, ]
+        while atlevel < level:
+            queue = []
+            for person in prevqueue:
+                for par in person.parents:
+                    queue.append(par)
+
+            prevqueue = queue
+            atlevel += 1
+
+        queue = set()
+        for person in prevqueue:
+            famc = person['FAMC']
+            if famc is None:
+                continue
+            
+            def add_siblings(*families):
+                for family in families:
+                    for child in family.as_individual().children:
+                        if child.as_individual().id != person.id:
+                            queue.add(child.as_individual())
+            
+            if isinstance(famc, list):
+                add_siblings(*famc)
+            else:
+                add_siblings(famc)
+
+        prevqueue = queue
+
+        while atlevel > 0:
+            queue = set()
+            for person in prevqueue:
+                fams = person['FAMS']
+                if fams is None:
+                    continue
+
+                def add_children(*families):
+                    for family in families:
+                        for child in family.as_individual().children:
+                            queue.add(child.as_individual())
+                if isinstance(fams, list):
+                    add_children(*fams)
+                else:
+                    add_children(fams)
+
+            prevqueue = queue
+            atlevel -= 1
+
+        return prevqueue
+
     def get_branch(self, _id, 
                    siblings=False,
                    descendants=False, 
@@ -57,7 +114,7 @@ class GedcomManipulator(object):
 
             if descendants and fams:
                 # if cur != root:
-                if type(fams) == list:
+                if isinstance(fams, list):
                     for fam in fams:
                         fam = fam.as_individual()
                         if fam is None:
@@ -69,7 +126,7 @@ class GedcomManipulator(object):
                             outelements.add(fam.wife.as_individual())
                         for child in fam.children:
                             queue.append(child.as_individual())
-                elif type(fams) == gedcom.Spouse:
+                elif isinstance(fams, gedcom.Spouse):
                     fam = fams.as_individual()
                     if fam is not None:
                         outelements.add(fams)
