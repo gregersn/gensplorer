@@ -30,10 +30,31 @@ class Settings(object):
 
         return None
 
-    def set(self, key, value):
+    def set(self, key, value, parent=None):
         """Set (and overwrite) a setting."""
-        self.settings[key] = value
-        self.save()
+        hierarchy = key.split(".")
+
+        if len(hierarchy) == 1:
+            if parent:
+                parent[hierarchy[0]] = value
+            else:
+                self.settings[hierarchy[0]] = value
+            
+            return
+
+        if len(hierarchy) > 1:
+            root = hierarchy[0]
+            
+            if parent is None:
+                if root not in self.settings:
+                    self.settings[root] = {}
+                target = self.settings[root]
+            else:
+                if len(hierarchy) > 1:
+                    if root not in parent:
+                        parent[root] = {}
+            return self.set(".".join(hierarchy[1:]), value, parent=target)
+
 
 SETTINGS = Settings()
 
