@@ -50,7 +50,12 @@ class MainWindow(QMainWindow):
 
     def init_ui(self):
         """Initialize UI."""
-        self.resize(640, 480)
+        main_size = self.settings.get('main.size')
+        print(main_size)
+        if main_size:
+            self.resize(*main_size)
+        else:
+            self.resize(640, 480)
 
         self.central_widget = QMdiArea()
 
@@ -139,5 +144,10 @@ class MainWindow(QMainWindow):
     
     def closeEvent(self, event):
         print("Close event")
+
+        self.settings.set("main.size",
+                          (self.size().width(), 
+                           self.size().height()))
+
         self.settings.save()
 

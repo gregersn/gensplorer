@@ -23,10 +23,19 @@ class Settings(object):
         with open(self.settings_file, 'w', newline="\n") as settings_file:
             json.dump(self.settings, settings_file, indent=4)
 
-    def get(self, key):
+    def get(self, key, parent=None):
         """Get a settings value."""
-        if key in self.settings:
-            return self.settings[key]
+        hierarchy = key.split(".")
+
+        if len(hierarchy) == 1:
+            if parent:
+                return parent[hierarchy[0]]
+
+            return self.settings[hierarchy[0]]
+        
+        if hierarchy[0] in self.settings:
+            return self.get(".".join(hierarchy[1:]),
+                            parent=self.settings[hierarchy[0]])
 
         return None
 
