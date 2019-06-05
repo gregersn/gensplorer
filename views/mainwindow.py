@@ -10,12 +10,14 @@ from PyQt5.QtWidgets import (QMainWindow,
                              qApp)
 
 from PyQt5.QtWidgets import QApplication
+from PyQt5.QtWidgets import QMdiArea, QMdiSubWindow
 from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import Qt
 
 from .stackwidget import StackWidget
 from .census2markdown import View as CensusView
 from .gedcom import View as GedcomView
+from .dna import View as DNAView
 
 from services import settings
 
@@ -25,27 +27,34 @@ ICONS = {
 
 
 class MainWindow(QMainWindow):
-    def __init__(self, settings=None):
-        super().__init__()
-        self.settings = settings
+    """Handle all subwindows."""
+    def __init__(self, s=None, *args, **kwargs):
+        super(MainWindow, self).__init__(*args, **kwargs)
+        self.settings = s
         self.actions = {}
-        self.init_actions()
+        self.views = {}
 
         self.toolbar = None
         self.init_ui()
+        self.init_actions()
+        self.init_menu()
+
+        self.add_view(CensusView(), 'census')
+        self.add_view(GedcomView(), 'gedcom')
+        self.add_view(DNAView(), 'dna')
+
+        open_windows = self.settings.get('window')
+        for window, state in open_windows.items():
+            if state:
+                self.actions[window].trigger()
 
     def init_ui(self):
         """Initialize UI."""
         self.resize(640, 480)
-        self.central_widget = StackWidget()
 
-        self.init_menu()
-        # self.init_toolbar()
+        self.central_widget = QMdiArea()
 
-        self.central_widget.add_view(CensusView(), "census")
-        self.central_widget.add_view(GedcomView(), "gedcom")
         self.setCentralWidget(self.central_widget)
-        self.central_widget.set_current(self.settings.get('current_view'))
 
     def init_menu(self):
         """Initialize the main menu."""
@@ -55,13 +64,10 @@ class MainWindow(QMainWindow):
         filemenu.addAction(self.actions['preferences'])
         filemenu.addAction(self.actions['exit'])
 
-        viewmenu = menubar.addMenu('&View')
-        viewgroup = QActionGroup(self)
-        viewmenu.addAction(self.actions['census'])
-        viewgroup.addAction(self.actions['census'])
-        viewmenu.addAction(self.actions['gedcom'])
-        viewgroup.addAction(self.actions['gedcom'])
-        viewgroup.triggered.connect(self.view_chosen)
+        self.viewmenu = menubar.addMenu('&View')
+        windowmenu = menubar.addMenu("&Window")
+        windowmenu.addAction(self.actions['cascade'])
+        windowmenu.addAction(self.actions['tile'])
 
         helpmenu = menubar.addMenu("&Help")
         helpmenu.addAction(self.actions['about'])
@@ -79,20 +85,29 @@ class MainWindow(QMainWindow):
         self.actions['exit'] = QAction(QIcon(ICONS['exit']), '&Exit', self)
         self.actions['exit'].setShortcut('Ctrl+Q')
         self.actions['exit'].menuRole = QAction.QuitRole
-        self.actions['exit'].triggered.connect(qApp.quit)
+        self.actions['exit'].triggered.connect(self.close)
 
         self.actions['preferences'] = QAction("Preferences", self)
         self.actions['preferences'].menuRole = QAction.PreferencesRole
 
-        self.actions['gedcom'] = QAction("Gedcom", self, checkable=True)
-        self.actions['gedcom'].setData("gedcom")
-
-        self.actions['census'] = QAction("Census", self, checkable=True)
-        self.actions['census'].setData("census")
-
         self.actions['about'] = QAction("&About", self)
         self.actions['about'].menuRole = QAction.AboutRole
         self.actions['about'].triggered.connect(self.about)
+
+        self.actions['tile'] = QAction("Tile", self)
+        self.actions['tile'].triggered.connect(self.central_widget.tileSubWindows)
+
+        self.actions['cascade'] = QAction("Cascade", self)
+        self.actions['cascade'].triggered.connect(self.central_widget.cascadeSubWindows)
+    
+    def toggle_view(self, actionname):
+        action = self.actions[actionname]
+        if action.isChecked():
+            self.open_window(self.views[actionname])
+            self.settings.set("window.{}".format(actionname), True)
+        else:
+            self.close_window(self.views[actionname])
+            self.settings.set("window.{}".format(actionname), False)
 
     def about(self):
         about = QMessageBox()
@@ -102,12 +117,27 @@ class MainWindow(QMainWindow):
                                                 "Source at <a href='https://github.com/gregersn/gensplorer'>GitHub</a>"]))
         about.exec_()
 
+    def add_view(self, w, name):
+        sub = QMdiSubWindow()
+        sub.setWidget(w)
+        self.views[name] = sub
+        
+        self.actions[name] = QAction(w.display_name if hasattr(w, 'display_name') else name, self, checkable=True)
+        self.actions[name].setData(name)
+        self.actions[name].triggered.connect(lambda: self.toggle_view(name))
 
-if __name__ == "__main__":
-    APP = QApplication(sys.argv)
-    APP.setApplicationDisplayName("Gensplorer...")
-    APP.setApplicationName("Gensplorer")
-    APP.setApplicationVersion("1.0")
-    WINDOW = MainWindow()
-    WINDOW.show()
-    APP.exit(APP.exec_())
+        self.viewmenu.addAction(self.actions[name])
+
+    def open_window(self, w):
+        print("Opening window", w)
+        self.central_widget.addSubWindow(w)
+        w.show()
+    
+    def close_window(self, w):
+        print("Closing window", w)
+        self.central_widget.removeSubWindow(w)
+    
+    def closeEvent(self, event):
+        print("Close event")
+        self.settings.save()
+

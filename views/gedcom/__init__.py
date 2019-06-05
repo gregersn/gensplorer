@@ -46,6 +46,8 @@ class View(BaseView):
 
         super().__init__()
 
+        self.display_name = "Gedcom"
+
         self.datafolder = settings.get("datafolder") or ""
 
         if settings.get("gedcomfile"):
