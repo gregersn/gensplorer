@@ -15,11 +15,12 @@ from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import Qt
 
 from .stackwidget import StackWidget
-from .census2markdown import View as CensusView
+from .digitalarkivet.census2markdown import View as CensusView
 from .gedcom import View as GedcomView
 from .dna import View as DNAView
 
 from services import settings
+import dialogs
 
 ICONS = {
     'exit': './assets/icons/icons8-exit-96.png'
@@ -94,6 +95,7 @@ class MainWindow(QMainWindow):
 
         self.actions['preferences'] = QAction("Preferences", self)
         self.actions['preferences'].menuRole = QAction.PreferencesRole
+        self.actions['preferences'].triggered.connect(self.preferences)
 
         self.actions['about'] = QAction("&About", self)
         self.actions['about'].menuRole = QAction.AboutRole
@@ -122,26 +124,36 @@ class MainWindow(QMainWindow):
                                                 "Source at <a href='https://github.com/gregersn/gensplorer'>GitHub</a>"]))
         about.exec_()
 
+    def preferences(self):
+        preferences = dialogs.Preferences(self.settings)
+        preferences.exec_()
+
     def add_view(self, w, name):
         sub = QMdiSubWindow()
         sub.setWidget(w)
         self.views[name] = sub
-        
+
         self.actions[name] = QAction(w.display_name if hasattr(w, 'display_name') else name, self, checkable=True)
         self.actions[name].setData(name)
         self.actions[name].triggered.connect(lambda: self.toggle_view(name))
 
         self.viewmenu.addAction(self.actions[name])
+    
+    def add_window(self, w):
+        sub = QMdiSubWindow()
+        sub.setWidget(w)
+        self.central_widget.addSubWindow(sub)
+        sub.show()
 
     def open_window(self, w):
         print("Opening window", w)
         self.central_widget.addSubWindow(w)
         w.show()
-    
+
     def close_window(self, w):
         print("Closing window", w)
         self.central_widget.removeSubWindow(w)
-    
+
     def closeEvent(self, event):
         print("Close event")
 

@@ -5,7 +5,7 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout
 from PyQt5.QtWidgets import QPushButton, QTextEdit, QLineEdit
 from PyQt5.QtWidgets import QErrorMessage
 
-from .baseview import BaseView
+from ..baseview import BaseView
 from services import census
 
 

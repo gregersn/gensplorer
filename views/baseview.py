@@ -15,3 +15,16 @@ class BaseView(QWidget):
     
     def show_error(self, message):
             self.error_dialog.showMessage(message)
+
+
+def show_widget(widget: QWidget):
+    import sys
+    from PyQt5.QtWidgets import QApplication
+    
+    APP = QApplication(sys.argv)
+    w  = widget()
+    w.show()
+    sys.exit(APP.exec_())
+
+if __name__ == "__main__":
+    show_widget(BaseView)

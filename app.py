@@ -13,9 +13,8 @@ from services.settings import SETTINGS
 def main():
     """Start the app."""
     app = QApplication(sys.argv)
-
-    window = MainWindow(SETTINGS)
-    window.show()
+    app.mainwindow = MainWindow(SETTINGS)
+    app.mainwindow.show()
     app.exit(app.exec_())
 
 if __name__ == "__main__":
