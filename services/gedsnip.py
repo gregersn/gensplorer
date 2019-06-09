@@ -73,6 +73,43 @@ class GedcomManipulator(object):
 
         return prevqueue
 
+    def get_ydna(self, _id):
+        """Find all people that would/should have the same Y-DNA."""
+
+        root = self.gedcom[_id]
+
+        queue = [root, ]
+        outelements = set()
+
+        while queue:
+            cur = queue.pop(0)
+
+            if cur is None:
+                continue
+
+            if cur in outelements:
+                continue
+
+            fams = cur['FAMS']
+
+            if cur.father:
+                queue.append(cur.father)
+
+            if fams is not None:
+                def add_children(*families):
+                    for family in families:
+                        for child in family.as_individual().children:
+                            if child.as_individual().is_male:
+                                queue.append(child.as_individual())
+                if isinstance(fams, list):
+                    add_children(*fams)
+                else:
+                    add_children(fams)
+
+            outelements.add(cur)
+
+        return outelements
+
     def get_branch(self, _id, 
                    siblings=False,
                    descendants=False, 

@@ -13,6 +13,7 @@ import os
 from ..baseview import BaseView
 from .snipper import Snipper
 from .cousins import Cousins
+from ..dna import DNAProfile
 
 from services import gedsnip
 from services import settings
@@ -41,10 +42,10 @@ class PersonCompleter(QCompleter):
 
 
 class View(BaseView):
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
         self.gedcom = None
 
-        super().__init__()
+        super().__init__(*args, **kwargs)
 
         self.display_name = "Gedcom"
 
@@ -69,6 +70,7 @@ class View(BaseView):
         function_layout = QHBoxLayout()
         function_layout.addWidget(Snipper(self.gedcom, parent=self))
         function_layout.addWidget(Cousins(self.gedcom, parent=self))
+        function_layout.addWidget(DNAProfile.new(self.data['search'], self.parent))
 
         self.layout.addLayout(function_layout)
         self.setLayout(self.layout)
