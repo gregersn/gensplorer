@@ -1,3 +1,6 @@
+import os
+import json
+
 from PyQt5.QtWidgets import QHBoxLayout, QVBoxLayout, QPushButton, QSpinBox, QWidget
 from PyQt5.QtWidgets import QTableWidget, QTableWidgetItem, QLabel, QTextEdit, QLabel, QListView
 from PyQt5.QtCore import QCoreApplication
@@ -8,6 +11,7 @@ from PyQt5 import uic
 
 from ..baseview import BaseView
 from services import gedsnip
+from services.settings import SETTINGS
 from views.gedcom.widgets import PersonCompleter
 
 qt_creator_file = "views/dna/dnaprofile.ui"
@@ -52,23 +56,39 @@ class MatchModel(QAbstractItemModel):
 
 
 class Model(QAbstractItemModel):
-    def __init__(self, *args, xref=None, **kwargs):
+    def __init__(self, *args, xref=None, datafolder=".", **kwargs):
         super().__init__(*args, **kwargs)
         self.xref = xref or None
+        self.datafolder = datafolder
         self.manipulator = gedsnip.init_manipulator()
-        self.matches = MatchListModel(matches=[{'name': 'Match name', 'dnaFTDNA': 'Some dna data'}])
-        
+        self.matches = MatchListModel(matches=self.load())
+
     def get_by_xref(self, xref):
         return self.manipulator.gedcom[xref]
 
     @property
     def name(self):
         return " ".join(self.manipulator.gedcom[self.xref].name)
-    
 
     def add_match(self, data):
         self.matches.add(data)
         self.matches.layoutChanged.emit()
+
+    def save(self):
+        if len(self.matches.matches) < 1:
+            return
+
+        filename = os.path.join(self.datafolder, "matches_{}.json".format(self.xref))
+        with open(filename, 'w', newline="\n") as f:
+            json.dump(self.matches.matches, f, indent=4)
+
+    def load(self):
+        filename = os.path.join(self.datafolder, "matches_{}.json".format(self.xref))
+        if not os.path.isfile(filename):
+            return []
+
+        with open(filename, 'r') as f:
+            return json.load(f)
 
 
 class View(BaseView, Ui_MainWindow):
@@ -98,7 +118,7 @@ class View(BaseView, Ui_MainWindow):
         super().__init__(*args, **kwargs)
 
         self.setupUi(self)
-        self.model = Model(xref=self.xref)
+        self.model = Model(xref=self.xref, datafolder=SETTINGS.get('datafolder'))
         # self.listView.setModel(self.model)
         self.nameLabel.setText(self.model.name)
         self.matchListView.setModel(self.model.matches)
@@ -114,6 +134,8 @@ class View(BaseView, Ui_MainWindow):
 
         self.btnAddMatch.clicked.connect(self.addmatch)
 
+        self.okButton.clicked.connect(self.close)
+
     def add(self):
         text = self.xrefEdit.text()
         if text:
@@ -121,10 +143,18 @@ class View(BaseView, Ui_MainWindow):
             self.model.layoutChanged.emit()
             self.xrefEdit.setText("")
 
+    def close(self):
+        self.model.save()
+        app = QCoreApplication.instance()
+        app.mainwindow.close_window(self.parentWidget())
+
+
     def showmatch(self, current, previous):
         data = self.model.matches.data(current, Qt.EditRole)
-        self.matchDataFTDNA.setPlainText(data.get('dnaFTDNA', ''))
-        self.matchDataMyHeritage.setPlainText(data.get('dnaMyHeritage', ''))
+        self.matchDataFTDNA.setPlainText(data.get('ftdna', ''))
+        self.matchDataFTDNA.setLineWrapMode(0)
+        self.matchDataMyHeritage.setPlainText(data.get('myheritage', ''))
+        self.matchDataMyHeritage.setLineWrapMode(0)
         self.matchXREF.setText(data.get('xref', ''))
         self.matchName.setText(data.get('name', ''))
 
@@ -138,8 +168,7 @@ class View(BaseView, Ui_MainWindow):
             'xref': xref,
             'name': name,
             'ftdna': ftdna,
-            'myheritage': myheritage,
-            'dna': dna
+            'myheritage': myheritage
         })
 
         self.model.layoutChanged.emit()
