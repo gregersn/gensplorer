@@ -13,32 +13,11 @@ import os
 from ..baseview import BaseView
 from .snipper import Snipper
 from .cousins import Cousins
-from ..dna import DNAProfile
+from ..dna.dnaprofile import View as DNAProfile
 
 from services import gedsnip
 from services import settings
-
-
-class PersonCompleter(QCompleter):
-    ConcatenationRole = Qt.UserRole + 1
-
-    def __init__(self, data, parent=None):
-        super().__init__(parent)
-        self.create_model(data)
-
-    def pathFromIndex(self, ix):
-        return ix.data(PersonCompleter.ConcatenationRole)
-
-    def create_model(self, data):
-        def addItems(parent, elements, t=""):
-            for xref, name in elements:
-                item = QStandardItem(name)
-                data = xref
-                item.setData(data)
-                parent.appendRow(item)
-        model = QStandardItemModel(self)
-        addItems(model, data)
-        self.setModel(model)
+from .widgets import PersonCompleter
 
 
 class View(BaseView):
@@ -70,14 +49,15 @@ class View(BaseView):
         function_layout = QHBoxLayout()
         function_layout.addWidget(Snipper(self.gedcom, parent=self))
         function_layout.addWidget(Cousins(self.gedcom, parent=self))
-        function_layout.addWidget(DNAProfile.new(self.data['search'], self.parent))
+        function_layout.addWidget(DNAProfile.new(self.data['search'],
+                                  self.parent))
 
         self.layout.addLayout(function_layout)
         self.setLayout(self.layout)
 
     def opengedcom(self):
         layout = QHBoxLayout()
-        
+
         layout.addWidget(QLabel("Gedcom file:"))
         self.data['filename'] = QLineEdit()
         layout.addWidget(self.data['filename'])
@@ -102,11 +82,9 @@ class View(BaseView):
         return layout
 
     def updatesearchbox(self):
-        self.completer = PersonCompleter(self.gedcom.namelist, self)
-        self.completer.setCaseSensitivity(Qt.CaseInsensitive)
-        self.completer.setFilterMode(Qt.MatchContains)
-        self.completer.activated.connect(self.activated)
-        self.data['search'].setCompleter(self.completer)
+        completer = PersonCompleter(self.gedcom.namelist, self)
+        completer.activated.connect(self.activated)
+        self.data['search'].setCompleter(completer)
 
     # Event handlers
 
@@ -144,7 +122,7 @@ class View(BaseView):
 
     def readgedcom(self, filename):
         self.data['filename'].setText(filename)
-        self.gedcom = gedsnip.GedcomManipulator(filename)
+        self.gedcom = gedsnip.init_manipulator(filename)
         self.updatesearchbox()
 
     def activated(self, *args, **kwargs):

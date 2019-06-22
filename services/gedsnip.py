@@ -38,13 +38,13 @@ class GedcomManipulator(object):
             famc = person['FAMC']
             if famc is None:
                 continue
-            
+
             def add_siblings(*families):
                 for family in families:
                     for child in family.as_individual().children:
                         if child.as_individual().id != person.id:
                             queue.add(child.as_individual())
-            
+
             if isinstance(famc, list):
                 add_siblings(*famc)
             else:
@@ -186,3 +186,14 @@ class GedcomManipulator(object):
             output.add_element(element)
         print(len(outelements))
         return output
+
+MANIPULATOR = None
+
+
+def init_manipulator(filename=None):
+    global MANIPULATOR
+
+    if filename is not None:
+        MANIPULATOR = GedcomManipulator(filename)
+
+    return MANIPULATOR
