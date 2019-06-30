@@ -110,9 +110,9 @@ class GedcomManipulator(object):
 
         return outelements
 
-    def get_branch(self, _id, 
+    def get_branch(self, _id,
                    siblings=False,
-                   descendants=False, 
+                   descendants=False,
                    ancestors=True):
         root = self.gedcom[_id]
 

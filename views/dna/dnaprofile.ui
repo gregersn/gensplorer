@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>900</width>
-    <height>500</height>
+    <width>972</width>
+    <height>661</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -25,7 +25,7 @@
   <property name="windowTitle">
    <string>DNA Match Profile</string>
   </property>
-  <layout class="QHBoxLayout" name="horizontalLayout_4">
+  <layout class="QVBoxLayout" name="verticalLayout_7">
    <item>
     <layout class="QVBoxLayout" name="verticalLayout">
      <property name="sizeConstraint">
@@ -105,27 +105,33 @@
           <widget class="QTabWidget" name="tabWidget">
            <property name="sizePolicy">
             <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-             <horstretch>1</horstretch>
-             <verstretch>1</verstretch>
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
             </sizepolicy>
            </property>
            <property name="currentIndex">
-            <number>1</number>
+            <number>0</number>
            </property>
+           <widget class="QWidget" name="tabTools">
+            <attribute name="title">
+             <string>Tools</string>
+            </attribute>
+            <layout class="QVBoxLayout" name="verticalLayout_9"/>
+           </widget>
            <widget class="QWidget" name="FTDNA">
             <property name="enabled">
              <bool>true</bool>
             </property>
             <property name="sizePolicy">
              <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-              <horstretch>1</horstretch>
-              <verstretch>1</verstretch>
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
              </sizepolicy>
             </property>
             <property name="sizeIncrement">
              <size>
-              <width>1</width>
-              <height>1</height>
+              <width>0</width>
+              <height>0</height>
              </size>
             </property>
             <attribute name="title">
@@ -133,21 +139,14 @@
             </attribute>
             <layout class="QVBoxLayout" name="verticalLayout_5">
              <item>
-              <layout class="QVBoxLayout" name="verticalLayout_3" stretch="0">
-               <property name="sizeConstraint">
-                <enum>QLayout::SetMinimumSize</enum>
+              <widget class="QPlainTextEdit" name="matchDataFTDNA">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
                </property>
-               <item>
-                <widget class="QPlainTextEdit" name="matchDataFTDNA">
-                 <property name="sizePolicy">
-                  <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-                   <horstretch>0</horstretch>
-                   <verstretch>0</verstretch>
-                  </sizepolicy>
-                 </property>
-                </widget>
-               </item>
-              </layout>
+              </widget>
              </item>
             </layout>
            </widget>
@@ -157,18 +156,14 @@
             </attribute>
             <layout class="QVBoxLayout" name="verticalLayout_6">
              <item>
-              <layout class="QVBoxLayout" name="verticalLayout_4" stretch="0">
-               <item>
-                <widget class="QPlainTextEdit" name="matchDataMyHeritage">
-                 <property name="sizePolicy">
-                  <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-                   <horstretch>0</horstretch>
-                   <verstretch>0</verstretch>
-                  </sizepolicy>
-                 </property>
-                </widget>
-               </item>
-              </layout>
+              <widget class="QPlainTextEdit" name="matchDataMyHeritage">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+              </widget>
              </item>
             </layout>
            </widget>
@@ -179,7 +174,7 @@
            <item>
             <widget class="QPushButton" name="btnAddMatch">
              <property name="text">
-              <string>Add match</string>
+              <string>Add/update match</string>
              </property>
             </widget>
            </item>

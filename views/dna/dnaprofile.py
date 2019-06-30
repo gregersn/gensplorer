@@ -35,6 +35,12 @@ class MatchListModel(QAbstractListModel):
 
     def add(self, data):
         self.matches.append(data)
+    
+    def xref_index(self, xref):
+        for idx, match in enumerate(self.matches):
+            if match['xref'] == xref:
+                return idx
+
 
 
 """
@@ -123,11 +129,19 @@ class View(BaseView, Ui_MainWindow):
         self.nameLabel.setText(self.model.name)
         self.matchListView.setModel(self.model.matches)
         self.matchListView.selectionModel().currentChanged.connect(self.showmatch)
+        self.matchListView.clicked.connect(self.showmatch)
 
-        def selectedPerson(*args, **kwargs):
-            person = self.model.get_by_xref(args[0])
-            self.matchName.setText(" ".join(person.name))
-
+        def selectedPerson(xref, *args, **kwargs):
+            person = self.model.get_by_xref(xref)
+            # Check if there already is a match with same xref
+            match = self.model.matches.xref_index(xref)
+            if match is not None:
+                self.showmatch(match, None)
+            else:
+                self.matchName.setText(" ".join(person.name))
+                self.matchDataFTDNA.setPlainText("")
+                self.matchDataMyHeritage.setPlainText("")
+    
         completer = PersonCompleter(self.model.manipulator.namelist, self)
         completer.activated.connect(selectedPerson)
         self.matchXREF.setCompleter(completer)
@@ -148,8 +162,7 @@ class View(BaseView, Ui_MainWindow):
         app = QCoreApplication.instance()
         app.mainwindow.close_window(self.parentWidget())
 
-
-    def showmatch(self, current, previous):
+    def showmatch(self, current, previous=None):
         data = self.model.matches.data(current, Qt.EditRole)
         self.matchDataFTDNA.setPlainText(data.get('ftdna', ''))
         self.matchDataFTDNA.setLineWrapMode(0)
