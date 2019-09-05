@@ -145,6 +145,9 @@ def census_to_markdown(census,
     return "\n".join(markdown_lines)
 
 
+def as_markdown(url):
+    return census_to_markdown(**get_census(url))
+
 def main():
     if len(sys.argv) < 2:
         print("Usage: {} <censuspageurl>".format(__file__))

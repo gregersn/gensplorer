@@ -63,6 +63,9 @@ class Settings(object):
                     if root not in parent:
                         parent[root] = {}
             return self.set(".".join(hierarchy[1:]), value, parent=target)
+    
+    def __str__(self):
+        return json.dumps(self.settings, indent=4)
 
 
 SETTINGS = Settings()
