@@ -50,7 +50,7 @@ class View(BaseView):
         function_layout.addWidget(Snipper(self.gedcom, parent=self))
         function_layout.addWidget(Cousins(self.gedcom, parent=self))
         function_layout.addWidget(DNAProfile.new(self.data['search'],
-                                  self.parent))
+                                                 self.parent))
 
         self.layout.addLayout(function_layout)
         self.setLayout(self.layout)
