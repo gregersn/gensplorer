@@ -187,6 +187,7 @@ class GedcomManipulator(object):
         print(len(outelements))
         return output
 
+
 MANIPULATOR = None
 
 
