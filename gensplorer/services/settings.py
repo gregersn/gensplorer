@@ -10,6 +10,9 @@ class Settings(object):
         self.settings_file = os.path.expanduser("~/gensplorer.json")
         if os.path.isfile(self.settings_file):
             self.load(self.settings_file)
+        else:
+            print("No settings files, creating default")
+            self.save()
 
     def load(self, filename):
         """Load from JSON file."""
@@ -27,17 +30,22 @@ class Settings(object):
         """Get a settings value."""
         hierarchy = key.split(".")
 
+        value = None
+
         if len(hierarchy) == 1:
             if parent:
-                return parent[hierarchy[0]]
-
-            return self.settings[hierarchy[0]]
+                print(parent)
+                value = parent.get(hierarchy[0], None)
+            else:
+                value = self.settings.get(hierarchy[0], None)
         
-        if hierarchy[0] in self.settings:
-            return self.get(".".join(hierarchy[1:]),
+        elif hierarchy[0] in self.settings:
+            value = self.get(".".join(hierarchy[1:]),
                             parent=self.settings[hierarchy[0]])
 
-        return None
+        if(parent is None and value is None):
+            print("Setting {} not found".format(key))
+        return value
 
     def set(self, key, value, parent=None):
         """Set (and overwrite) a setting."""
