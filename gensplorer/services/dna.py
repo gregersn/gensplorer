@@ -2,26 +2,31 @@
 import os
 import json
 from enum import Enum
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from typing import Dict
 
 from gensplorer.services import gedsnip
 
 
-class DNAProvider(Enum):
-    ftdna = 1
-    myheritage = 2
+class DNAProvider(str, Enum):
+    ftdna: str = "ftdna"
+    myheritage: str = "myheritage"
 
 
 @dataclass
 class Match:
     xref: str
-    matchdata = {}
+    matchdata: Dict = field(default_factory=lambda: {})
 
-    def add_matchdata(self, provider, data):
+    def add_matchdata(self, provider: DNAProvider, data):
         self.matchdata[provider] = data
 
     def to_dict(self):
         return {'xref': self.xref, 'matchdata': self.matchdata}
+
+    def from_json(self, data):
+        for key, value in data['matchdata'].items():
+            self.add_matchdata(DNAProvider[key], value)
 
 
 @dataclass
@@ -29,7 +34,7 @@ class Profile:
     xref: str
     datafolder: str
     name: str = "unnamed"
-    matches = {}
+    matches: Dict = field(default_factory=lambda: {})
 
     @property
     def filename(self):
@@ -45,21 +50,38 @@ class Profile:
             json.dump(self.matches, f, indent=4, default=lambda x: x.to_dict())
 
     @classmethod
-    def load(cls, xref, datafolder):
+    def load(cls, xref, datafolder='.'):
         filename = os.path.join(datafolder, "matches_{}.json".format(xref))
         with open(filename, 'r') as f:
             data = json.load(f)
 
-        match = cls(xref, datafolder)
-        match.matches = data
+        profile = cls(xref, datafolder)
+        profile.from_json(data)
 
-        return match
+        return profile
     
+    def from_json(self, data):
+        for key, value in data.items():
+            match = Match(key)
+            match.from_json(value)
+            self.add_match(match)
+
     def delete(self):
-        os.unlink(self.filename)
+        if os.path.isfile(self.filename):
+            os.unlink(self.filename)
 
     def to_dict(self):
         return {'xref': self.xref, 'name': self.name, 'matches': matches}
+
+    def add_match(self, match: Match):
+        self.matches[match.xref] = match
+
+    def add_matchdata(self, matchxref: str, provider, data):
+        self.matches[matchxref].add_matchdata(provider, data)
+
+    @property
+    def matchcount(self):
+        return len(self.matches) 
 
 
 def load_matchfile(path):
@@ -89,7 +111,7 @@ def profiles(datafolder, gedcomfile):
 
 def add_profile(datafolder, gedcomfile, xref, name, overwrite=False):
     """Add a new DNA profile."""
-    files = matchfiles(datafolder)
+    # files = matchfiles(datafolder)
     gedcom = gedsnip.init_manipulator(gedcomfile)
 
     gedprofile = gedcom.gedcom[xref]
