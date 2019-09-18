@@ -2,12 +2,15 @@
 import os
 import json
 
+DEFAULT_FILE = os.path.join(os.path.expanduser("~/gensplorer.json"))
+
 
 class Settings(object):
     """Settings container."""
-    def __init__(self):
+
+    def __init__(self, filename=DEFAULT_FILE):
         self.settings = {}
-        self.settings_file = os.path.expanduser("~/gensplorer.json")
+        self.settings_file = filename
         if os.path.isfile(self.settings_file):
             self.load(self.settings_file)
         else:
@@ -33,45 +36,44 @@ class Settings(object):
         value = None
 
         if len(hierarchy) == 1:
-            if parent:
-                print(parent)
-                value = parent.get(hierarchy[0], None)
+            if parent is None:
+                value = self.settings.get(hierarchy[0])
             else:
-                value = self.settings.get(hierarchy[0], None)
-        
-        elif hierarchy[0] in self.settings:
-            value = self.get(".".join(hierarchy[1:]),
-                            parent=self.settings[hierarchy[0]])
-
-        if(parent is None and value is None):
-            print("Setting {} not found".format(key))
-        return value
+                value = parent.get(hierarchy[0])
+            return value
+        else:
+            if parent is None:
+                value = self.get(".".join(hierarchy[1:]),
+                                 parent=self.settings[hierarchy[0]])
+            else:
+                value = self.get(".".join(hierarchy[1:]),
+                                 parent=parent[hierarchy[0]])
+            return value
 
     def set(self, key, value, parent=None):
         """Set (and overwrite) a setting."""
         hierarchy = key.split(".")
 
         if len(hierarchy) == 1:
-            if parent:
-                parent[hierarchy[0]] = value
-            else:
+            if parent is None:
                 self.settings[hierarchy[0]] = value
-            
+            else:
+                parent[hierarchy[0]] = value
             return
 
         if len(hierarchy) > 1:
             root = hierarchy[0]
-            
+
             if parent is None:
                 if root not in self.settings:
                     self.settings[root] = {}
                 target = self.settings[root]
             else:
-                if len(hierarchy) > 1:
-                    if root not in parent:
-                        parent[root] = {}
+                if root not in parent:
+                    parent[root] = {}
+                target = parent[root]
             return self.set(".".join(hierarchy[1:]), value, parent=target)
-    
+
     def __str__(self):
         return json.dumps(self.settings, indent=4)
 
