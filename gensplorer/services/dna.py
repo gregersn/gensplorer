@@ -1,6 +1,8 @@
 """Wrestle DNA matches in various ways from various providers."""
 import os
 import json
+import csv
+from io import StringIO
 from enum import Enum
 from dataclasses import dataclass, field
 from typing import Dict
@@ -8,9 +10,71 @@ from typing import Dict
 from gensplorer.services import gedsnip
 
 
+def dict2dict(input, mapping):
+    output = {}
+    for dest, source in mapping.items():
+        output[dest] = input[source]
+
+    return output
+
+
 class DNAProvider(str, Enum):
     ftdna: str = "ftdna"
     myheritage: str = "myheritage"
+
+    @staticmethod
+    def parse_overlap(data, provider):
+        if provider == DNAProvider.ftdna:
+            return DNAProvider.parse_overlap_ftdna(data)
+
+        if provider == DNAProvider.myheritage:
+            return DNAProvider.parse_overlap_myheritage(data)
+
+    @staticmethod
+    def parse_overlap_ftdna(data):
+        mappings = {
+            "name": "Name",
+            "matchname": "Match Name",
+            "chromosome": "Chromosome",
+            "start": "Start Location",
+            "end": "End Location",
+            "centimorgans": "Centimorgans",
+            "snps": "Matching SNPs"
+        }
+        f = StringIO(data)
+        reader = csv.DictReader(f)
+
+        segments = []
+        for row in reader:
+            segments.append(dict2dict(row, mappings))
+
+        return {'segments': segments,
+                'name': segments[0]['name'],
+                'matchname': segments[0]['matchname']}
+
+    @staticmethod
+    def parse_overlap_myheritage(data):
+        mappings = {
+            "name": "Name",
+            "matchname": "Match Name",
+            "chromosome": "Chromosome",
+            "start": "Start Location",
+            "end": "End Location",
+            "startRSID": "Start RSID",
+            "endRSID": "End RSID",
+            "centimorgans": "Centimorgans",
+            "snps": "SNPs"
+        }
+        f = StringIO(data)
+        reader = csv.DictReader(f)
+
+        segments = []
+        for row in reader:
+            segments.append(dict2dict(row, mappings))
+
+        return {'segments': segments,
+                'name': segments[0]['name'],
+                'matchname': segments[0]['matchname']}
 
 
 @dataclass
@@ -59,7 +123,7 @@ class Profile:
         profile.from_json(data)
 
         return profile
-    
+
     def from_json(self, data):
         for key, value in data.items():
             match = Match(key)
@@ -81,7 +145,7 @@ class Profile:
 
     @property
     def matchcount(self):
-        return len(self.matches) 
+        return len(self.matches)
 
 
 def load_matchfile(path):
