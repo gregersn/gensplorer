@@ -28,6 +28,25 @@ class TestProfile(unittest.TestCase):
         self.assertEqual(p, p2)
 
         p.delete()
+    
+    def test_load_and_save_with_match_edit(self):
+        profilename = 'load_and_save_with_match_edit'
+        p = Profile(profilename, '.')
+        match = Match('id1')
+        p.add_match(match)
+        p.add_matchdata('id1', DNAProvider.ftdna, 'ftdna')
+        p.save()
+
+        p2 = Profile.load(profilename)
+        p2.add_matchdata('id1', DNAProvider.myheritage, 'myheritage')
+        p2.save(overwrite=True)
+
+        p3 = Profile.load(profilename)
+
+        self.assertEqual(p3.matches['id1'].matchdata['ftdna'], 'ftdna')
+        self.assertEqual(p3.matches['id1'].matchdata['myheritage'], 'myheritage')
+
+        p3.delete()
 
 
 class TestMatches(unittest.TestCase):
@@ -74,3 +93,36 @@ class TestMatches(unittest.TestCase):
         match = self.profile.matches['matcha']
         self.assertEqual(match.matchdata[DNAProvider.ftdna], '1234567')
         self.assertEqual(match.matchdata[DNAProvider.myheritage], '7654321')
+
+
+class TestParsers(unittest.TestCase):
+    def test_parse_ftdna(self):
+        data = """Name,Match Name,Chromosome,Start Location,End Location,Centimorgans,Matching SNPs
+John Doe,Jane Doe,1,97361501,98738209,1.74,800
+John Doe,Jane Doe,1,225194241,227239975,1.33,500
+John Doe,Jane Doe,2,48105815,50978138,2.33,900
+"""
+
+        parsed = DNAProvider.parse_overlap_ftdna(data)
+
+        self.assertEqual(parsed['matchname'], "Jane Doe")
+        self.assertEqual(parsed['name'], "John Doe")
+        self.assertEqual(len(parsed['segments']), 3)
+        self.assertEqual(parsed['segments'][0]['centimorgans'], '1.74')
+        self.assertEqual(parsed['segments'][1]['centimorgans'], '1.33')
+        self.assertEqual(parsed['segments'][2]['snps'], '900')
+
+    def test_parse_myheritage(self):
+        data = """Name,Match Name,Chromosome,Start Location,End Location,Start RSID,End RSID,Centimorgans,SNPs
+John Doe,Jane Doe,2,84899144,98715864,rs12185616,rs2100272,6.6,2304
+John Doe,Jane Doe,4,111195187,118652449,rs7673060,rs10016031,7.1,3328
+John Doe,Jane Doe,16,21288101,25694279,rs226039,rs2966227,7.4,2048"""
+
+        parsed = DNAProvider.parse_overlap_myheritage(data)
+
+        self.assertEqual(parsed['matchname'], "Jane Doe")
+        self.assertEqual(parsed['name'], "John Doe")
+        self.assertEqual(len(parsed['segments']), 3)
+        self.assertEqual(parsed['segments'][0]['centimorgans'], '6.6')
+        self.assertEqual(parsed['segments'][1]['centimorgans'], '7.1')
+        self.assertEqual(parsed['segments'][2]['snps'], '2048')

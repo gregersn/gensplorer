@@ -2,13 +2,11 @@
 import os
 import json
 
-DEFAULT_FILE = os.path.join(os.path.expanduser("~/gensplorer.json"))
-
 
 class Settings(object):
     """Settings container."""
 
-    def __init__(self, filename=DEFAULT_FILE):
+    def __init__(self, filename):
         self.settings = {}
         self.settings_file = filename
         if os.path.isfile(self.settings_file):
@@ -76,16 +74,3 @@ class Settings(object):
 
     def __str__(self):
         return json.dumps(self.settings, indent=4)
-
-
-SETTINGS = Settings()
-
-
-def get(key):
-    """Return a value from SETTINGS."""
-    return SETTINGS.get(key)
-
-
-def set(key, value):
-    """Set a setting."""
-    return SETTINGS.set(key, value)
