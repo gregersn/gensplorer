@@ -4,7 +4,7 @@
 import sys
 import argparse
 
-from gensplorer.services.settings import SETTINGS
+from gensplorer.services import SETTINGS
 from gensplorer.services import census
 from gensplorer.services import dna
 

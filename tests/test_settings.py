@@ -1,9 +1,8 @@
 import os
 import unittest
-from unittest.mock import MagicMock
 
 from gensplorer.services.settings import Settings
-from gensplorer.services import settings
+from gensplorer import services
 
 
 class TestSettings(unittest.TestCase):
@@ -45,8 +44,8 @@ class TestSettings(unittest.TestCase):
     def test_settings_to_string(self):
         self.settings.set('foo', 'bar')
         self.assertEqual(str(self.settings), '{\n    "foo": "bar"\n}')
-    
+
     def test_global_set_and_get(self):
-        settings.set("testsetting", 9)
-        v = settings.get("testsetting")
+        services.set("testsetting", 9)
+        v = services.get("testsetting")
         self.assertEqual(9, v)
