@@ -13,7 +13,7 @@ from gensplorer.services import gedsnip
 def dict2dict(input, mapping):
     output = {}
     for dest, source in mapping.items():
-        output[dest] = input[source]
+        output[dest] = input[source].strip()
 
     return output
 
@@ -83,6 +83,8 @@ class DNAProvider(str, Enum):
 
     @staticmethod
     def parse_matchfile_ftdna(datafile):
+        mappings = {k: ftdna_mappings[k] for k in (
+            'chromosome', 'start', 'end', 'centimorgans', 'snps')}
         with open(datafile, 'r', encoding="utf-8-sig") as f:
             reader = csv.DictReader(f)
 
@@ -91,17 +93,39 @@ class DNAProvider(str, Enum):
             for row in reader:
                 if row['Match Name'] != current_name:
                     if current_name is not None:
-                        yield {'segments': segments, 'name': segments[0]['name'], 'matchname': segments[0]['matchname']}
+                        yield {'segments': segments, 'matchname': current_name}
                     current_name = row['Match Name']
                     segments = []
 
-                segments.append(dict2dict(row, ftdna_mappings))
-        yield {'segments': segments, 'name': segments[0]['name'], 'matchname': segments[0]['matchname']}
+                segments.append(dict2dict(row, mappings))
+        yield {'segments': segments, 'matchname': current_name}
+
+    @staticmethod
+    def parse_matchfile_myheritage(datafile):
+        mappings = {k: myheritage_mappings[k] for k in (
+            'chromosome', 'start', 'end', 'centimorgans', 'snps')}
+        with open(datafile, 'r', encoding="utf-8-sig") as f:
+            reader = csv.DictReader(f)
+
+            current_name = None
+            segments = []
+            for row in reader:
+                if row['Match Name'] != current_name:
+                    if current_name is not None:
+                        yield {'segments': segments, 'matchname': current_name}
+                    current_name = row['Match Name']
+                    segments = []
+
+                segments.append(dict2dict(row, mappings))
+        yield {'segments': segments, 'matchname': current_name}
 
     @staticmethod
     def parse_matchfile(provider, datafile):
         if provider == DNAProvider.ftdna:
             return DNAProvider.parse_matchfile_ftdna(datafile)
+
+        if provider == DNAProvider.myheritage:
+            return DNAProvider.parse_matchfile_myheritage(datafile)
 
 
 @dataclass
@@ -143,12 +167,14 @@ class Profile:
             json.dump(self.matches, f, indent=4, default=lambda x: x.to_dict())
 
     @classmethod
-    def load(cls, xref, datafolder='.'):
+    def load(cls, xref, datafolder='.', create=False):
         filename = os.path.join(datafolder, "matches_{}.json".format(xref))
-        assert os.path.isfile(
-            filename), "File does not exist: {}".format(filename)
-        with open(filename, 'r') as f:
-            data = json.load(f)
+        if not os.path.isfile(filename):
+            print("Profile does not exist, creating")
+            data = []
+        else:
+            with open(filename, 'r') as f:
+                data = json.load(f)
 
         profile = cls(xref, datafolder)
         profile.from_json(data)
@@ -264,5 +290,5 @@ def import_matches(xref, provider, matchfile, datafolder):
     """Import all matches from a file into a profile."""
     assert os.path.isfile(matchfile)
     assert DNAProvider[provider]
-    profile = Profile.load(xref, datafolder)
+    profile = Profile.load(xref, datafolder, create=True)
     profile.import_matches(DNAProvider[provider], matchfile)
