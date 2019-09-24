@@ -12,6 +12,36 @@ from gensplorer.utils.logger import setup_logger
 log = setup_logger("cli")
 
 
+def dnaparser(parser):
+    dna_parser = parser.add_parser("dna", help="Handle DNA profiles")
+    sub_parsers = dna_parser.add_subparsers(dest="dna")
+
+    sub_parsers.add_parser("profiles", help="List existing DNA profiles")
+
+    matches_parser = sub_parsers.add_parser(
+        "matches", help="List matches for given DNA profile")
+    matches_parser.add_argument(
+        'xref', type=str, help="Xref to list matches for")
+
+    profile_parser = sub_parsers.add_parser(
+        "addprofile", help="Create a new DNA profile")
+    profile_group = profile_parser.add_mutually_exclusive_group(required=True)
+    profile_group.add_argument(
+        "--interactive", action="store_true")
+    profile_group.add_argument(
+        '--profile', metavar=('xref', 'profilename'), nargs=2)
+
+    match_parser = sub_parsers.add_parser(
+        "addmatch", help="Add a match to a profile")
+    match_group = match_parser.add_mutually_exclusive_group(required=True)
+    match_group.add_argument("--interactive", action="store_true")
+
+    match_group.add_argument(
+        "--match", metavar=('profile_xref', 'match_xref', 'test_provider'), nargs=3)
+    match_group.add_argument(
+        "--import", dest="importfile", metavar=('profile_xref', 'test_provider', 'matchfile'), nargs=3)
+
+
 def argparser():
     parser = argparse.ArgumentParser()
 
@@ -23,18 +53,7 @@ def argparser():
         "census", help="Get markdown of a Norwegian census")
     census_parser.add_argument('url', type=str)
 
-    dna_parser = subparsers.add_parser("dna", help="Handle DNA profiles")
-    dna_parser.add_argument(
-        '--list-profiles', action="store_true",
-        help="Shows current known DNA profiles")
-    dna_parser.add_argument('--add-profile', nargs=2,
-                            help="Add a new DNA profile",
-                            metavar=('xref', 'profilename'))
-    dna_parser.add_argument('--list-matches', type=str,
-                            help="List matches for given xref")
-    dna_parser.add_argument('--add-match', type=str,
-                            help="Add a DNA match and DNA data", nargs=3,
-                            metavar=('profile_xref', 'match_xref', 'test_provider'))
+    dnaparser(subparsers)
     return parser
 
 
@@ -45,21 +64,26 @@ def main():
         print(census.as_markdown(arguments.url))
 
     if arguments.command == "dna":
-        if arguments.list_profiles:
+        print(arguments)
+        if arguments.dna == "profiles":
             for profile in dna.profiles(SETTINGS.get("datafolder"),
                                         SETTINGS.get("gedcomfile")):
                 print(profile)
 
-        if arguments.list_matches:
-            print("List DNA matches for {}".format(arguments.list_matches))
-            for match in dna.matches(arguments.list_matches,
+        if arguments.dna == "matches":
+            print("List DNA matches for {}".format(arguments.xref))
+            for match in dna.matches(arguments.xref,
                                      SETTINGS.get("datafolder"),
                                      SETTINGS.get("gedcomfile")):
                 print("Xref: {xref}, Name: {name}".format(**match))
 
-        if arguments.add_profile:
+        if arguments.dna == "addprofile":
             print("Add a profile")
-            xref, profilename = arguments.add_profile
+            if(arguments.interactive):
+                profilename = input("Name: ")
+                xref = input("Xref: ")
+            else:
+                xref, profilename = arguments.add_profile
             log.debug("Parameters: profilename: {}, xref: {}".format(
                 profilename, xref))
             dna.add_profile(SETTINGS.get("datafolder"),
@@ -67,9 +91,21 @@ def main():
                             xref,
                             profilename)
 
-        if arguments.add_match:
-            print("Add a match")
-            xref, matchref, provider = arguments.add_match
+        if arguments.dna == "addmatch":
+            if arguments.interactive:
+                xref = input("Profile xref: ")
+                matchref = input("Match name or xref: ")
+                provider = input("Match provider (ftdna or myheritage): ")
+            elif arguments.importfile:
+                xref, provider, filename = arguments.importfile
+                dna.import_matches(xref, provider, filename,
+                                   SETTINGS.get("datafolder"))
+                return
+            else:
+                print("Add a match")
+                xref, matchref, provider = arguments.add_match
+
+            print("Add match data, end with ^D: ")
             data = [line for line in sys.stdin]
             dna.add_match(SETTINGS.get("datafolder"),
                           SETTINGS.get("gedcomfile"),
