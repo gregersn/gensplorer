@@ -5,7 +5,7 @@ import csv
 from io import StringIO
 from enum import Enum
 from dataclasses import dataclass, field
-from typing import Dict
+from typing import Dict, List
 
 from gensplorer.services import gedsnip
 
@@ -16,6 +16,29 @@ def dict2dict(input, mapping):
         output[dest] = input[source]
 
     return output
+
+
+ftdna_mappings = {
+    "name": "Name",
+    "matchname": "Match Name",
+    "chromosome": "Chromosome",
+    "start": "Start Location",
+    "end": "End Location",
+    "centimorgans": "Centimorgans",
+    "snps": "Matching SNPs"
+}
+
+myheritage_mappings = {
+    "name": "Name",
+    "matchname": "Match Name",
+    "chromosome": "Chromosome",
+    "start": "Start Location",
+    "end": "End Location",
+    "startRSID": "Start RSID",
+    "endRSID": "End RSID",
+    "centimorgans": "Centimorgans",
+    "snps": "SNPs"
+}
 
 
 class DNAProvider(str, Enum):
@@ -32,21 +55,13 @@ class DNAProvider(str, Enum):
 
     @staticmethod
     def parse_overlap_ftdna(data):
-        mappings = {
-            "name": "Name",
-            "matchname": "Match Name",
-            "chromosome": "Chromosome",
-            "start": "Start Location",
-            "end": "End Location",
-            "centimorgans": "Centimorgans",
-            "snps": "Matching SNPs"
-        }
+
         f = StringIO(data)
         reader = csv.DictReader(f)
 
         segments = []
         for row in reader:
-            segments.append(dict2dict(row, mappings))
+            segments.append(dict2dict(row, ftdna_mappings))
 
         return {'segments': segments,
                 'name': segments[0]['name'],
@@ -54,42 +69,55 @@ class DNAProvider(str, Enum):
 
     @staticmethod
     def parse_overlap_myheritage(data):
-        mappings = {
-            "name": "Name",
-            "matchname": "Match Name",
-            "chromosome": "Chromosome",
-            "start": "Start Location",
-            "end": "End Location",
-            "startRSID": "Start RSID",
-            "endRSID": "End RSID",
-            "centimorgans": "Centimorgans",
-            "snps": "SNPs"
-        }
+
         f = StringIO(data)
         reader = csv.DictReader(f)
 
         segments = []
         for row in reader:
-            segments.append(dict2dict(row, mappings))
+            segments.append(dict2dict(row, myheritage_mappings))
 
         return {'segments': segments,
                 'name': segments[0]['name'],
                 'matchname': segments[0]['matchname']}
 
+    @staticmethod
+    def parse_matchfile_ftdna(datafile):
+        with open(datafile, 'r', encoding="utf-8-sig") as f:
+            reader = csv.DictReader(f)
+
+            current_name = None
+            segments = []
+            for row in reader:
+                if row['Match Name'] != current_name:
+                    if current_name is not None:
+                        yield {'segments': segments, 'name': segments[0]['name'], 'matchname': segments[0]['matchname']}
+                    current_name = row['Match Name']
+                    segments = []
+
+                segments.append(dict2dict(row, ftdna_mappings))
+        yield {'segments': segments, 'name': segments[0]['name'], 'matchname': segments[0]['matchname']}
+
+    @staticmethod
+    def parse_matchfile(provider, datafile):
+        if provider == DNAProvider.ftdna:
+            return DNAProvider.parse_matchfile_ftdna(datafile)
+
 
 @dataclass
 class Match:
-    xref: str
+    xref: str = None
+    name: str = "unnamed"
     matchdata: Dict = field(default_factory=lambda: {})
 
     def add_matchdata(self, provider: DNAProvider, data):
         self.matchdata[provider] = data
 
     def to_dict(self):
-        return {'xref': self.xref, 'matchdata': self.matchdata}
+        return {'xref': self.xref, 'name': self.name, 'matchdata': self.matchdata}
 
     def from_json(self, data):
-        for key, value in data['matchdata'].items():
+        for key, value in data.items():
             self.add_matchdata(DNAProvider[key], value)
 
 
@@ -98,7 +126,8 @@ class Profile:
     xref: str
     datafolder: str
     name: str = "unnamed"
-    matches: Dict = field(default_factory=lambda: {})
+    # matches: Dict = field(default_factory=lambda: {})
+    matches: List = field(default_factory=lambda: [])
 
     @property
     def filename(self):
@@ -116,6 +145,8 @@ class Profile:
     @classmethod
     def load(cls, xref, datafolder='.'):
         filename = os.path.join(datafolder, "matches_{}.json".format(xref))
+        assert os.path.isfile(
+            filename), "File does not exist: {}".format(filename)
         with open(filename, 'r') as f:
             data = json.load(f)
 
@@ -125,9 +156,9 @@ class Profile:
         return profile
 
     def from_json(self, data):
-        for key, value in data.items():
-            match = Match(key)
-            match.from_json(value)
+        for matchdata in data:
+            match = Match(xref=matchdata['xref'], name=matchdata['name'])
+            match.from_json(matchdata['matchdata'])
             self.add_match(match)
 
     def delete(self):
@@ -138,14 +169,40 @@ class Profile:
         return {'xref': self.xref, 'name': self.name, 'matches': matches}
 
     def add_match(self, match: Match):
-        self.matches[match.xref] = match
+        for m in self.matches:
+            if match.name == m.name and match.xref == m.xref:
+                print("Match, {}, already exists?".format(m.name))
+                return
+
+        self.matches.append(match)
 
     def add_matchdata(self, matchxref: str, provider, data):
-        self.matches[matchxref].add_matchdata(provider, data)
+        match = self.find_match(matchxref)
+        match.add_matchdata(provider, data)
 
     @property
     def matchcount(self):
         return len(self.matches)
+
+    def get_matches(self):
+        for data in self.matches:
+            if data.xref is not None:
+                yield {'xref': data.xref, 'name': data.name}
+
+    def import_matches(self, provider, datafile):
+        for m in DNAProvider.parse_matchfile(provider, datafile):
+            matchdata = {}
+            matchdata[provider] = m['segments']
+            match = Match(None, m['matchname'], matchdata)
+            self.add_match(match)
+        self.save(overwrite=True)
+
+    def find_match(self, xref=None, name=None):
+        for m in self.matches:
+            if m.xref == xref or m.name == name:
+                return m
+
+        return None
 
 
 def load_matchfile(path):
@@ -199,7 +256,13 @@ def add_match(datafolder, gedcomfile, xref, matchref, provider, data):
 
 def matches(xref, datafolder, gedcomfile):
     """Get matches for a given xref."""
-    matches_file = os.path.join(datafolder, "matches_{}.json".format(xref))
-    assert os.path.isfile(matches_file)
-    for _ in Profile.load(matches_file):
-        yield _
+    profile = Profile.load(xref, datafolder)
+    return profile.get_matches()
+
+
+def import_matches(xref, provider, matchfile, datafolder):
+    """Import all matches from a file into a profile."""
+    assert os.path.isfile(matchfile)
+    assert DNAProvider[provider]
+    profile = Profile.load(xref, datafolder)
+    profile.import_matches(DNAProvider[provider], matchfile)
