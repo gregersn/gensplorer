@@ -2,3 +2,7 @@
 __pycache__/
 .DS_Store
 .coverage
+.vscode/.ropeproject/
+.vscode/.ropeproject/
+.pytest_cache/
+
