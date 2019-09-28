@@ -1,7 +1,7 @@
 .PHONY: test
 test:
-	python3 -m pytest
+	pytest
 
 .PHONY: coverage
 coverage:
-	python3 -m pytest --cov-report term-missing --cov=gensplorer
+	pytest --cov-report term-missing --cov=gensplorer

@@ -1,7 +1,21 @@
 import unittest
+from unittest import mock
 
-from gensplorer.services.dna import DNAProvider
+
+from gensplorer.services.dna.provider import DNAProvider
 from gensplorer.services.dna import utils
+from gensplorer.services.dna import load_matchfile
+
+
+class TestMisc(unittest.TestCase):
+    def test_load_matchfile(self):
+        read_data = '{"foo": "bar"}'
+        mock_open = mock.mock_open(read_data=read_data)
+        with mock.patch('builtins.open', mock_open):
+            t = load_matchfile("somefile")
+            mock_open.assert_called_once()
+            mock_open.assert_called_with('somefile', 'r')
+            self.assertEqual(t, {'foo': 'bar'})
 
 
 class TestParsers(unittest.TestCase):
@@ -64,7 +78,8 @@ class TestOverlapp(unittest.TestCase):
         b = [{'start': 10, 'end': 30}]
         c = [{'start': 10, 'end': 15}, {'start': 65, 'end': 80}]
 
-        d = [{'start': 24, 'end': 30}, {'start': 62, 'end': 95}, {'start': 201, 'end': 250}]
+        d = [{'start': 24, 'end': 30}, {'start': 62,
+                                        'end': 95}, {'start': 201, 'end': 250}]
 
         self.assertTrue(utils.chromosome_overlap(a, b))
         self.assertTrue(utils.chromosome_overlap(b, a))
@@ -79,21 +94,19 @@ class TestOverlapp(unittest.TestCase):
         self.assertFalse(utils.chromosome_overlap(d, a))
 
     def test_overlapping_match(self):
-        a = [{'start': 0, 'end': 20}, {'start': 40,
-                                       'end': 60}, {'start': 100, 'end': 200}]
-        b = [{'start': 10, 'end': 30}]
+        match_a = {'1': [{'start': 0, 'end': 20}, {'start': 40,
+                                                   'end': 60}, {'start': 100, 'end': 200}]}
+        match_b = {'2': [{'start': 10, 'end': 30}]}
+
+        match_c = {'1': [{'start': 10, 'end': 30}]}
+
         c = [{'start': 10, 'end': 15}, {'start': 65, 'end': 80}]
 
-        d = [{'start': 24, 'end': 30}, {'start': 62, 'end': 95}, {'start': 201, 'end': 250}]
-
-        match_a = [{'chromosome': 1, 'segments': a}]
-        match_b = [{'chromosome': 2, 'segments': b}]
-        match_c = [{'chromosome': 1, 'segments': b}]
+        d = [{'start': 24, 'end': 30}, {'start': 62,
+                                        'end': 95}, {'start': 201, 'end': 250}]
 
         self.assertFalse(utils.match_overlap(match_a, match_b))
         self.assertFalse(utils.match_overlap(match_b, match_a))
 
         self.assertTrue(utils.match_overlap(match_a, match_c))
         self.assertTrue(utils.match_overlap(match_c, match_a))
-
-
