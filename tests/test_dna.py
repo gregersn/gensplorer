@@ -1,98 +1,7 @@
 import unittest
 
-from gensplorer.services.dna import Profile, Match, DNAProvider
-
-
-class TestProfile(unittest.TestCase):
-    def test_load_and_save(self):
-        p = Profile('load_and_save_1', '.')
-        p.save()
-        p2 = Profile.load('load_and_save_1', '.')
-
-        self.assertEqual(p, p2)
-
-        p3 = Profile('load_and_save_2', '.')
-        self.assertNotEqual(p, p3)
-
-        p.delete()
-
-    def test_load_and_save_with_match(self):
-        p = Profile('load_and_save_with_match', '.')
-        match = Match('@I0002')
-        match.add_matchdata(DNAProvider.ftdna, '1234567')
-        p.add_match(match)
-        p.save()
-
-        p2 = Profile.load('load_and_save_with_match')
-
-        self.assertEqual(p, p2)
-
-        p.delete()
-    
-    def test_load_and_save_with_match_edit(self):
-        profilename = 'load_and_save_with_match_edit'
-        p = Profile(profilename, '.')
-        match = Match('id1')
-        p.add_match(match)
-        p.add_matchdata('id1', DNAProvider.ftdna, 'ftdna')
-        p.save()
-
-        p2 = Profile.load(profilename)
-        p2.add_matchdata('id1', DNAProvider.myheritage, 'myheritage')
-        p2.save(overwrite=True)
-
-        p3 = Profile.load(profilename)
-
-        self.assertEqual(p3.find_match('id1').matchdata['ftdna'], 'ftdna')
-        self.assertEqual(p3.find_match('id1').matchdata['myheritage'], 'myheritage')
-
-        p3.delete()
-
-
-class TestMatches(unittest.TestCase):
-    def setUp(self):
-        self.profile = Profile('@testmatches@', '.')
-
-    def tearDown(self):
-        self.profile.delete()
-
-    def test_add_match(self):
-        match = Match('@I0002')
-        match.add_matchdata(DNAProvider.ftdna, "dummydata")
-        self.profile.add_match(match)
-
-        self.assertIsNotNone(self.profile.find_match('@I0002'))
-        self.assertEqual(self.profile.matchcount,
-                         1, self.profile.matches)
-
-    def test_add_multiple_matches(self):
-        match = Match('matcha')
-        match.add_matchdata(DNAProvider.ftdna, "dasdfasd")
-        self.profile.add_match(match)
-
-        match2 = Match('matchb')
-        match2.add_matchdata(DNAProvider.myheritage, "asldkfjasd")
-        self.profile.add_match(match2)
-
-        self.assertIsNotNone(self.profile.find_match('matcha'), self.profile.matches)
-        self.assertIsNotNone(self.profile.find_match('matchb'), self.profile.matches)
-        self.assertEqual(self.profile.matchcount,
-                         2)
-
-    def test_add_more_to_match(self):
-        match = Match('matcha')
-        match.add_matchdata(DNAProvider.ftdna, '1234567')
-        self.profile.add_match(match)
-
-        self.assertEqual(self.profile.matchcount, 1)
-
-        self.profile.add_matchdata('matcha', DNAProvider.myheritage, '7654321')
-
-        self.assertEqual(self.profile.matchcount, 1)
-
-        match = self.profile.find_match('matcha')
-        self.assertEqual(match.matchdata[DNAProvider.ftdna], '1234567')
-        self.assertEqual(match.matchdata[DNAProvider.myheritage], '7654321')
+from gensplorer.services.dna import DNAProvider
+from gensplorer.services.dna import utils
 
 
 class TestParsers(unittest.TestCase):
@@ -126,3 +35,65 @@ John Doe,Jane Doe,16,21288101,25694279,rs226039,rs2966227,7.4,2048"""
         self.assertEqual(parsed['segments'][0]['centimorgans'], '6.6')
         self.assertEqual(parsed['segments'][1]['centimorgans'], '7.1')
         self.assertEqual(parsed['segments'][2]['snps'], '2048')
+
+
+class TestOverlapp(unittest.TestCase):
+    def test_overlapping_segment(self):
+        a = {'start': 0, 'end': 100}
+
+        c = {'start': 10, 'end': 120}
+        d = {'start': 110, 'end': 150}
+
+        e = {'start': 10, 'end': 50}
+
+        self.assertTrue(utils.segment_overlap(a, c))
+        self.assertTrue(utils.segment_overlap(c, a))
+
+        self.assertTrue(utils.segment_overlap(c, d))
+        self.assertTrue(utils.segment_overlap(d, c))
+
+        self.assertFalse(utils.segment_overlap(a, d))
+        self.assertFalse(utils.segment_overlap(d, a))
+
+        self.assertTrue(utils.segment_overlap(a, e))
+        self.assertTrue(utils.segment_overlap(e, a))
+
+    def test_overlapping_chromosome(self):
+        a = [{'start': 0, 'end': 20}, {'start': 40,
+                                       'end': 60}, {'start': 100, 'end': 200}]
+        b = [{'start': 10, 'end': 30}]
+        c = [{'start': 10, 'end': 15}, {'start': 65, 'end': 80}]
+
+        d = [{'start': 24, 'end': 30}, {'start': 62, 'end': 95}, {'start': 201, 'end': 250}]
+
+        self.assertTrue(utils.chromosome_overlap(a, b))
+        self.assertTrue(utils.chromosome_overlap(b, a))
+
+        self.assertTrue(utils.chromosome_overlap(a, c))
+        self.assertTrue(utils.chromosome_overlap(c, a))
+
+        self.assertTrue(utils.chromosome_overlap(c, b))
+        self.assertTrue(utils.chromosome_overlap(b, c))
+
+        self.assertFalse(utils.chromosome_overlap(a, d))
+        self.assertFalse(utils.chromosome_overlap(d, a))
+
+    def test_overlapping_match(self):
+        a = [{'start': 0, 'end': 20}, {'start': 40,
+                                       'end': 60}, {'start': 100, 'end': 200}]
+        b = [{'start': 10, 'end': 30}]
+        c = [{'start': 10, 'end': 15}, {'start': 65, 'end': 80}]
+
+        d = [{'start': 24, 'end': 30}, {'start': 62, 'end': 95}, {'start': 201, 'end': 250}]
+
+        match_a = [{'chromosome': 1, 'segments': a}]
+        match_b = [{'chromosome': 2, 'segments': b}]
+        match_c = [{'chromosome': 1, 'segments': b}]
+
+        self.assertFalse(utils.match_overlap(match_a, match_b))
+        self.assertFalse(utils.match_overlap(match_b, match_a))
+
+        self.assertTrue(utils.match_overlap(match_a, match_c))
+        self.assertTrue(utils.match_overlap(match_c, match_a))
+
+
