@@ -64,7 +64,6 @@ def main():
         print(census.as_markdown(arguments.url))
 
     if arguments.command == "dna":
-        print(arguments)
         if arguments.dna == "profiles":
             for profile in dna.profiles(SETTINGS.get("datafolder"),
                                         SETTINGS.get("gedcomfile")):
