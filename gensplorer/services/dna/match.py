@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
 from typing import Dict
+import json
 
 from .provider import DNAProvider
 from .utils import match_overlap
@@ -27,3 +28,27 @@ class Match:
 
     def matches(self, other: Match) -> bool:
         return match_overlap(self.matchdata['ftdna'], other.matchdata['ftdna'])
+
+
+class Matches(object):
+    def __init__(self, filename):
+        self.data = {}
+        with open(filename, 'r') as f:
+            self.data = json.load(f)
+
+    @property
+    def gedfile(self):
+        return self.data['gedfile']
+
+    def get_tester(self, name: str):
+        for tester in self.data['testers']:
+            if name == tester['name']:
+                return tester
+
+    def get_matches(self, tester: str):
+        """Get matches for a named tester."""
+        matches = {}
+        for xref, match in self.data['matches'].items():
+            if tester in match['matches']:
+                matches[xref] = match
+        return matches

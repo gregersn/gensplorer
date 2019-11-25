@@ -127,7 +127,6 @@ class DNAProvider(str, Enum):
         if zipfile.is_zipfile(datafile):
             filename = ".".join(os.path.basename(
                 datafile).split('.')[0:-1]) + ".csv"
-            print(filename)
             with zipfile.ZipFile(datafile) as zipped:
                 with zipped.open(filename) as f:
                     data = f.read()
