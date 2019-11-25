@@ -48,7 +48,7 @@ class Matches(object):
     def get_matches(self, tester: str):
         """Get matches for a named tester."""
         matches = {}
-        for xref, match in self.data['matches'].items():
+        for match in self.data['matches']:
             if tester in match['matches']:
-                matches[xref] = match
+                matches[match['xref']] = match
         return matches
