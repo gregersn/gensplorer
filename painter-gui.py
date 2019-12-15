@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import os
 import sys
+import json
 
 from PyQt5.QtWidgets import (QApplication,
                              QLabel, QWidget,
@@ -9,38 +10,71 @@ from PyQt5.QtWidgets import (QApplication,
                              QLineEdit, QPushButton,
                              QFileDialog)
 
-from pgui import Ui_MainWindow
+from PyQt5.QtGui import (QStandardItemModel, QStandardItem)
+from PyQt5 import uic
 
-from gensplorer.services.dna.match import Matches
+from UI.add_tester import Ui_AddTesterDialog
+
+# from UI.painter import Ui_MainWindow
+Ui_Window, QtBaseClass = uic.loadUiType("./UI/painter.ui")
+
+# from gensplorer.services.dna.match import Matches
 
 
-class PainterGUI(QMainWindow):
-    def __init__(self, *args, **kwargs):
+class PainterGUI(QtBaseClass):
+    def __init__(self, arguments, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
         self.data = {}
         self.matches = None
-        self.ui = Ui_MainWindow()
+        self.ui = Ui_Window()
         self.ui.setupUi(self)
 
         self.ui.btnOpenGedcom.clicked.connect(self.openGedcomDialog)
+
+        self.ui.btnAddTester.clicked.connect(self.add_tester)
 
         self.initmenu()
 
         self.show()
 
-        # self.initUI()
+        if len(arguments) > 1:
+            self.load_settings(arguments[1])
+
+    def add_tester(self):
+        dialog = Ui_AddTesterDialog(self)
+        if dialog.exec_():
+            print(dialog.tester)
+
+    def load_settings(self, filename):
+        with open(filename, 'r') as f:
+            self.data = json.load(f)
+
+        tester_list = self.ui.listTesters
+        model = QStandardItemModel(tester_list)
+
+        if 'testers' in self.data:
+            for tester in self.data['testers']:
+                item = QStandardItem(tester['name'])
+                model.appendRow(item)
+        tester_list.setModel(model)
+
+    def save_settings(self, filename):
+        with open(filename, 'w') as f:
+            json.dump(self.data, f)
 
     def openDialog(self):
         fname = QFileDialog.getOpenFileName(self, "Open file", '')
-        self.matches = Matches(fname[0])
+        # self.matches = Matches(fname[0])
 
-        tester_list = self.ui.listTesters
-
-        
+        # tester_list = self.ui.listTesters
+        if len(fname[0]) > 0:
+            self.load_settings(fname[0])
 
     def saveDialog(self):
         fname = QFileDialog.getSaveFileName(self, "Save file", '')
-        print(fname)
+        if len(fname[0]) > 0:
+            self.save_settings(fname[0])
 
     def initmenu(self):
         self.ui.actionE_xit.triggered.connect(qApp.quit)
@@ -112,7 +146,7 @@ class PainterGUI(QMainWindow):
 
 def main():
     app = QApplication(sys.argv)
-    pgui = PainterGUI()
+    pgui = PainterGUI(app.arguments())
     sys.exit(app.exec_())
     """
     app = QApplication(sys.argv)
