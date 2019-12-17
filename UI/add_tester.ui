@@ -62,7 +62,7 @@
        <widget class="QLineEdit" name="inFtdna"/>
       </item>
       <item>
-       <widget class="QPushButton" name="pushButton">
+       <widget class="QPushButton" name="btnFtdna">
         <property name="text">
          <string>Browse</string>
         </property>
@@ -83,7 +83,7 @@
        <widget class="QLineEdit" name="inMyheritage"/>
       </item>
       <item>
-       <widget class="QPushButton" name="pushButton_2">
+       <widget class="QPushButton" name="btnMyheritage">
         <property name="text">
          <string>Browse</string>
         </property>

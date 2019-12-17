@@ -31,10 +31,14 @@ class Match:
 
 
 class Matches(object):
-    def __init__(self, filename):
+    def __init__(self, data: str or {}):
         self.data = {}
-        with open(filename, 'r') as f:
-            self.data = json.load(f)
+
+        if type(data) == str:
+            with open(data, 'r') as f:
+                self.data = json.load(f)
+        else:
+            self.data = data
 
     @property
     def gedfile(self):

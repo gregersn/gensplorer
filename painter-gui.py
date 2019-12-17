@@ -5,20 +5,62 @@ import json
 
 from PyQt5.QtWidgets import (QApplication,
                              QLabel, QWidget,
-                             QVBoxLayout, QHBoxLayout, QAction,
-                             qApp, QMainWindow,
+                             QHBoxLayout,
+                             qApp,
                              QLineEdit, QPushButton,
                              QFileDialog)
 
-from PyQt5.QtGui import (QStandardItemModel, QStandardItem)
+from PyQt5.QtCore import QAbstractListModel, QAbstractItemModel
+from PyQt5 import QtCore
 from PyQt5 import uic
+
+from gensplorer.services.dna.match import Matches
 
 from UI.add_tester import Ui_AddTesterDialog
 
-# from UI.painter import Ui_MainWindow
 Ui_Window, QtBaseClass = uic.loadUiType("./UI/painter.ui")
 
-# from gensplorer.services.dna.match import Matches
+
+class ModelTesters(QAbstractListModel):
+    """Model to hold testers."""
+    def __init__(self, *args, testers=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.testers = testers
+
+    def data(self, index, role):
+        if role == QtCore.Qt.DisplayRole:
+            return self.testers[index.row()]['name']
+
+    def rowCount(self, index):
+        return len(self.testers)
+
+
+class ModelMatches(QAbstractItemModel):
+    """Model to hold matches."""
+    def __init__(self, *args, matches=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.matches = matches
+
+    def data(self, index, role):
+        print(index.column())
+        key = sorted(self.matches.keys())[index.row()]
+        match = self.matches[key]
+        if role == QtCore.Qt.DisplayRole:
+            if index.column() == 0:
+                return match['xref']
+            if index.column() == 1:
+                return match['ftdna'] if 'ftdna' in match else ''
+            if index.column() == 2:
+                return match['myheritage'] if 'myheritage' in match else ''
+
+    def index(self, row, col, parent=None):
+        return self.createIndex(row, col)
+
+    def rowCount(self, index):
+        return len(self.matches)
+
+    def columnCount(self, index):
+        return 3
 
 
 class PainterGUI(QtBaseClass):
@@ -33,6 +75,7 @@ class PainterGUI(QtBaseClass):
         self.ui.btnOpenGedcom.clicked.connect(self.openGedcomDialog)
 
         self.ui.btnAddTester.clicked.connect(self.add_tester)
+        self.ui.inputGedcom.textChanged.connect(self.update_data)
 
         self.initmenu()
 
@@ -41,23 +84,36 @@ class PainterGUI(QtBaseClass):
         if len(arguments) > 1:
             self.load_settings(arguments[1])
 
+    def update_data(self):
+        self.data['gedfile'] = self.ui.inputGedcom.text()
+
     def add_tester(self):
         dialog = Ui_AddTesterDialog(self)
         if dialog.exec_():
-            print(dialog.tester)
+            self.data['testers'].append(dialog.tester)
+            self.model_testers.layoutChanged.emit()
+
+    def select_tester(self, current, previous):
+        selected_tester = self.data['testers'][current.row()]
+        matches = self.matches.get_matches(selected_tester['name'])
+        self.model_matches.matches = matches
+        self.model_matches.layoutChanged.emit()
 
     def load_settings(self, filename):
         with open(filename, 'r') as f:
             self.data = json.load(f)
+            self.ui.inputGedcom.setText(self.data['gedfile'])
+            self.matches = Matches(self.data)
 
         tester_list = self.ui.listTesters
-        model = QStandardItemModel(tester_list)
-
+        matches_list = self.ui.listMatches
         if 'testers' in self.data:
-            for tester in self.data['testers']:
-                item = QStandardItem(tester['name'])
-                model.appendRow(item)
-        tester_list.setModel(model)
+            self.model_testers = ModelTesters(tester_list, testers=self.data['testers'])
+            tester_list.setModel(self.model_testers)
+            self.ui.listTesters.selectionModel().currentChanged.connect(self.select_tester)
+
+            self.model_matches = ModelMatches(matches_list, matches={})
+            matches_list.setModel(self.model_matches)
 
     def save_settings(self, filename):
         with open(filename, 'w') as f:
@@ -96,6 +152,7 @@ class PainterGUI(QtBaseClass):
         assert os.path.isfile(filename)
 
         self.datafolder = os.path.dirname(filename)
+        self.ui.inputGedcom.setText(filename)
         # settings.set("datafolder", self.datafolder)
 
         # settings.set("gedcomfile", filename)
