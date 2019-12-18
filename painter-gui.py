@@ -3,6 +3,9 @@ import os
 import sys
 import json
 
+
+
+
 from PyQt5.QtWidgets import (QApplication,
                              QLabel, QWidget,
                              QHBoxLayout,
@@ -10,11 +13,12 @@ from PyQt5.QtWidgets import (QApplication,
                              QLineEdit, QPushButton,
                              QFileDialog)
 
-from PyQt5.QtCore import QAbstractListModel, QAbstractItemModel
+from PyQt5.QtCore import QAbstractListModel, QAbstractItemModel, QAbstractTableModel
 from PyQt5 import QtCore
 from PyQt5 import uic
 
 from gensplorer.services.dna.match import Matches
+from gensplorer.services.gedsnip import GedcomManipulator
 
 from UI.add_tester import Ui_AddTesterDialog
 
@@ -35,14 +39,13 @@ class ModelTesters(QAbstractListModel):
         return len(self.testers)
 
 
-class ModelMatches(QAbstractItemModel):
+class ModelMatches(QAbstractTableModel):
     """Model to hold matches."""
     def __init__(self, *args, matches=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.matches = matches
 
     def data(self, index, role):
-        print(index.column())
         key = sorted(self.matches.keys())[index.row()]
         match = self.matches[key]
         if role == QtCore.Qt.DisplayRole:
@@ -69,6 +72,7 @@ class PainterGUI(QtBaseClass):
 
         self.data = {}
         self.matches = None
+        self.gedcom = None
         self.ui = Ui_Window()
         self.ui.setupUi(self)
 
@@ -88,7 +92,7 @@ class PainterGUI(QtBaseClass):
         self.data['gedfile'] = self.ui.inputGedcom.text()
 
     def add_tester(self):
-        dialog = Ui_AddTesterDialog(self)
+        dialog = Ui_AddTesterDialog(self, self.gedcom)
         if dialog.exec_():
             self.data['testers'].append(dialog.tester)
             self.model_testers.layoutChanged.emit()
@@ -103,6 +107,8 @@ class PainterGUI(QtBaseClass):
         with open(filename, 'r') as f:
             self.data = json.load(f)
             self.ui.inputGedcom.setText(self.data['gedfile'])
+            self.gedcom = GedcomManipulator(self.data['gedfile'])
+            print(self.gedcom)
             self.matches = Matches(self.data)
 
         tester_list = self.ui.listTesters

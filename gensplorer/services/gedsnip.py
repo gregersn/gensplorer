@@ -1,12 +1,14 @@
+import os
 from gedcom.element.individual import IndividualElement
 from gedcom.parser import Parser
-
 
 class GedcomManipulator(object):
     def __init__(self, filename):
         self.filename = filename
+        assert os.path.isfile(filename)
         self.gedcom = Parser()
         self.gedcom.parse_file(self.filename)
+
         self.names = None
 
     @property
