@@ -56,3 +56,31 @@ class Matches(object):
             if tester in match['matches']:
                 matches[match['xref']] = match
         return matches
+
+    def get_match(self, xref: str):
+        """Check if a certain xref has an entry as a matcher."""
+        for match in self.data['matches']:
+            if match['xref'] == xref:
+                return match
+
+    def add_match(self, tester: str, xref: str, ftdna, myheritage):
+        if tester not in self.data['testers']:
+            raise Exception
+
+        match = self.get_match(xref)
+        if match is None:
+            self.data['matches'].append({
+                'xref': xref,
+                'ftdna': ftdna,
+                'myheritage': myheritage,
+                'matches': [tester['name'], ]
+            })
+        else:
+            if tester not in match['matches']:
+                match['matches'].append(tester['name'])
+
+            if 'ftdna' not in match:
+                match['ftdna'] = ftdna
+
+            if 'myheritage' not in match:
+                match['myheritage'] = myheritage

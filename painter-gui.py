@@ -3,9 +3,6 @@ import os
 import sys
 import json
 
-
-
-
 from PyQt5.QtWidgets import (QApplication,
                              QLabel, QWidget,
                              QHBoxLayout,
@@ -13,7 +10,7 @@ from PyQt5.QtWidgets import (QApplication,
                              QLineEdit, QPushButton,
                              QFileDialog)
 
-from PyQt5.QtCore import QAbstractListModel, QAbstractItemModel, QAbstractTableModel
+from PyQt5.QtCore import QAbstractListModel, QAbstractTableModel
 from PyQt5 import QtCore
 from PyQt5 import uic
 
@@ -21,6 +18,7 @@ from gensplorer.services.dna.match import Matches
 from gensplorer.services.gedsnip import GedcomManipulator
 
 from UI.add_tester import Ui_AddTesterDialog
+from UI.add_match import Ui_AddMatchDialog
 
 Ui_Window, QtBaseClass = uic.loadUiType("./UI/painter.ui")
 
@@ -79,6 +77,9 @@ class PainterGUI(QtBaseClass):
         self.ui.btnOpenGedcom.clicked.connect(self.openGedcomDialog)
 
         self.ui.btnAddTester.clicked.connect(self.add_tester)
+        self.ui.btnEditTester.clicked.connect(self.edit_tester)
+        self.ui.btnAddMatch.clicked.connect(self.add_match)
+        self.ui.btnAddMatch.setEnabled(False)
         self.ui.inputGedcom.textChanged.connect(self.update_data)
 
         self.initmenu()
@@ -97,19 +98,42 @@ class PainterGUI(QtBaseClass):
             self.data['testers'].append(dialog.tester)
             self.model_testers.layoutChanged.emit()
 
+    def edit_tester(self):
+        dialog = Ui_AddTesterDialog(self, self.gedcom, edit=self.selected_tester)
+        if dialog.exec_():
+            tester = self.matches.get_tester(self.selected_tester['name'])
+            tester['xref'] = dialog.tester['xref']
+            if 'shared_segments' not in tester:
+                tester['shared_segments'] = {}
+            tester['shared_segments']['myheritage'] = dialog.tester['shared_segments']['myheritage']
+            tester['shared_segments']['ftdna'] = dialog.tester['shared_segments']['ftdna']
+
+    def add_match(self):
+        dialog = Ui_AddMatchDialog(self, self.gedcom, self.selected_tester)
+        if dialog.exec_():
+            self.matches.add_match(self.selected_tester, **dialog.matcher)
+            self.model_matches.layoutChanged.emit()
+
     def select_tester(self, current, previous):
-        selected_tester = self.data['testers'][current.row()]
-        matches = self.matches.get_matches(selected_tester['name'])
+        if current.row() > -1:
+            self.ui.btnAddMatch.setEnabled(True)
+            self.ui.btnEditTester.setEnabled(True)
+        self.selected_tester = self.data['testers'][current.row()]
+        matches = self.matches.get_matches(self.selected_tester['name'])
         self.model_matches.matches = matches
         self.model_matches.layoutChanged.emit()
 
     def load_settings(self, filename):
-        with open(filename, 'r') as f:
-            self.data = json.load(f)
-            self.ui.inputGedcom.setText(self.data['gedfile'])
-            self.gedcom = GedcomManipulator(self.data['gedfile'])
-            print(self.gedcom)
-            self.matches = Matches(self.data)
+        self.matches = Matches(filename)
+        self.data = self.matches.data
+        self.cwd = os.getcwd()
+        self.workingdirectory = os.path.dirname(filename)
+        os.chdir(self.workingdirectory)
+        self.settings_filename = os.path.basename(filename)
+        print(self.settings_filename)
+
+        self.ui.inputGedcom.setText(self.data['gedfile'])
+        self.gedcom = GedcomManipulator(self.data['gedfile'])
 
         tester_list = self.ui.listTesters
         matches_list = self.ui.listMatches
@@ -121,9 +145,11 @@ class PainterGUI(QtBaseClass):
             self.model_matches = ModelMatches(matches_list, matches={})
             matches_list.setModel(self.model_matches)
 
-    def save_settings(self, filename):
+    def save_settings(self, filename=None):
+        if filename is None:
+            filename = self.settings_filename
         with open(filename, 'w') as f:
-            json.dump(self.data, f)
+            json.dump(self.data, f, indent=4)
 
     def openDialog(self):
         fname = QFileDialog.getOpenFileName(self, "Open file", '')
@@ -133,7 +159,7 @@ class PainterGUI(QtBaseClass):
         if len(fname[0]) > 0:
             self.load_settings(fname[0])
 
-    def saveDialog(self):
+    def saveAsDialog(self):
         fname = QFileDialog.getSaveFileName(self, "Save file", '')
         if len(fname[0]) > 0:
             self.save_settings(fname[0])
@@ -141,8 +167,8 @@ class PainterGUI(QtBaseClass):
     def initmenu(self):
         self.ui.actionE_xit.triggered.connect(qApp.quit)
         self.ui.action_Open.triggered.connect(self.openDialog)
-        self.ui.action_Save.triggered.connect(self.saveDialog)
-        self.ui.actionSave_as.triggered.connect(self.saveDialog)
+        self.ui.action_Save.triggered.connect(lambda: self.save_settings())
+        self.ui.actionSave_as.triggered.connect(self.saveAsDialog)
 
     def openGedcomDialog(self):
         options = QFileDialog.Options()

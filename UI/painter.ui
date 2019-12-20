@@ -41,11 +41,25 @@
          <widget class="QListView" name="listTesters"/>
         </item>
         <item>
-         <widget class="QPushButton" name="btnAddTester">
-          <property name="text">
-           <string>Add tester</string>
-          </property>
-         </widget>
+         <layout class="QHBoxLayout" name="horizontalLayout_3">
+          <item>
+           <widget class="QPushButton" name="btnAddTester">
+            <property name="text">
+             <string>Add tester</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btnEditTester">
+            <property name="enabled">
+             <bool>false</bool>
+            </property>
+            <property name="text">
+             <string>Edit tester</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
         </item>
        </layout>
       </item>
@@ -56,6 +70,9 @@
         </item>
         <item>
          <widget class="QPushButton" name="btnAddMatch">
+          <property name="enabled">
+           <bool>false</bool>
+          </property>
           <property name="text">
            <string>Add match</string>
           </property>
