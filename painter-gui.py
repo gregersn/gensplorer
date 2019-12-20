@@ -25,6 +25,7 @@ Ui_Window, QtBaseClass = uic.loadUiType("./UI/painter.ui")
 
 class ModelTesters(QAbstractListModel):
     """Model to hold testers."""
+
     def __init__(self, *args, testers=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.testers = testers
@@ -39,6 +40,7 @@ class ModelTesters(QAbstractListModel):
 
 class ModelMatches(QAbstractTableModel):
     """Model to hold matches."""
+
     def __init__(self, *args, matches=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.matches = matches
@@ -71,6 +73,8 @@ class PainterGUI(QtBaseClass):
         self.data = {}
         self.matches = None
         self.gedcom = None
+        self.workingdirectory = '.'
+
         self.ui = Ui_Window()
         self.ui.setupUi(self)
 
@@ -90,16 +94,18 @@ class PainterGUI(QtBaseClass):
             self.load_settings(arguments[1])
 
     def update_data(self):
-        self.data['gedfile'] = self.ui.inputGedcom.text()
+        gedfile = self.ui.inputGedcom.text()
+        self.data['gedfile'] = os.path.relpath(gedfile, self.workingdirectory)
 
     def add_tester(self):
         dialog = Ui_AddTesterDialog(self, self.gedcom)
         if dialog.exec_():
-            self.data['testers'].append(dialog.tester)
+            self.matches.add_tester(**dialog.tester)
             self.model_testers.layoutChanged.emit()
 
     def edit_tester(self):
-        dialog = Ui_AddTesterDialog(self, self.gedcom, edit=self.selected_tester)
+        dialog = Ui_AddTesterDialog(
+            self, self.gedcom, edit=self.selected_tester)
         if dialog.exec_():
             tester = self.matches.get_tester(self.selected_tester['name'])
             tester['xref'] = dialog.tester['xref']
@@ -129,16 +135,19 @@ class PainterGUI(QtBaseClass):
         self.cwd = os.getcwd()
         self.workingdirectory = os.path.dirname(filename)
         os.chdir(self.workingdirectory)
+
         self.settings_filename = os.path.basename(filename)
         print(self.settings_filename)
 
-        self.ui.inputGedcom.setText(self.data['gedfile'])
+        self.ui.inputGedcom.setText(os.path.realpath(os.path.join(
+            self.workingdirectory, self.data['gedfile'])))
         self.gedcom = GedcomManipulator(self.data['gedfile'])
 
         tester_list = self.ui.listTesters
         matches_list = self.ui.listMatches
         if 'testers' in self.data:
-            self.model_testers = ModelTesters(tester_list, testers=self.data['testers'])
+            self.model_testers = ModelTesters(
+                tester_list, testers=self.data['testers'])
             tester_list.setModel(self.model_testers)
             self.ui.listTesters.selectionModel().currentChanged.connect(self.select_tester)
 

@@ -63,6 +63,24 @@ class Matches(object):
             if match['xref'] == xref:
                 return match
 
+    def add_tester(self, name: str, xref: str,
+                   myheritage: str = None,
+                   ftdna: str = None):
+        if 'testers' not in self.data:
+            self.data['testers'] = []
+
+        if self.get_tester(name) is not None:
+            raise Exception
+
+        self.data['testers'].append({
+            'xref': xref,
+            'name': name,
+            'shared_segments': {
+                'myheritage': myheritage,
+                'ftdna': ftdna
+            }
+        })
+
     def add_match(self, tester: str, xref: str, ftdna, myheritage):
         if tester not in self.data['testers']:
             raise Exception

@@ -44,7 +44,8 @@ class Ui_AddTesterDialog(QtBaseClass):
         self.ui.inName.setReadOnly(True)
         if 'shared_segments' in edit:
             if 'myheritage' in edit['shared_segments']:
-                self.ui.inMyheritage.setText(edit['shared_segments']['myheritage'])
+                self.ui.inMyheritage.setText(
+                    edit['shared_segments']['myheritage'])
 
             if 'ftdna' in edit['shared_segments']:
                 self.ui.inFtdna.setText(edit['shared_segments']['ftdna'])
@@ -62,10 +63,8 @@ class Ui_AddTesterDialog(QtBaseClass):
     def submitclose(self):
         self.tester = {
             'name': self.ui.inName.text(),
-            'shared_segments': {
-                'ftdna': self.ui.inFtdna.text(),
-                'myheritage': self.ui.inMyheritage.text()
-            },
+            'ftdna': self.ui.inFtdna.text(),
+            'myheritage': self.ui.inMyheritage.text(),
             'xref': self.ui.inXref.text().replace('@', '')
         }
         valid = True
