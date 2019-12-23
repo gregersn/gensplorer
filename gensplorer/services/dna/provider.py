@@ -124,6 +124,7 @@ class DNAProvider(str, Enum):
     @staticmethod
     def parse_matchfile(provider, datafile):
         data = None
+        assert os.path.isfile(datafile), datafile
         if zipfile.is_zipfile(datafile):
             filename = ".".join(os.path.basename(
                 datafile).split('.')[0:-1]) + ".csv"

@@ -71,20 +71,21 @@ class PainterGUI(QtBaseClass):
         super().__init__(*args, **kwargs)
 
         self.data = {}
-        self.matches = None
+        self.matches = Matches(self.data)
         self.gedcom = None
         self.workingdirectory = '.'
+        self.settings_filename = None
 
         self.ui = Ui_Window()
         self.ui.setupUi(self)
 
         self.ui.btnOpenGedcom.clicked.connect(self.openGedcomDialog)
-
         self.ui.btnAddTester.clicked.connect(self.add_tester)
         self.ui.btnEditTester.clicked.connect(self.edit_tester)
         self.ui.btnAddMatch.clicked.connect(self.add_match)
         self.ui.btnAddMatch.setEnabled(False)
-        self.ui.inputGedcom.textChanged.connect(self.update_data)
+        self.ui.btnAddTester.setEnabled(False)
+        self.ui.inputGedcom.textChanged.connect(self.update_gedcom)
 
         self.initmenu()
 
@@ -94,13 +95,32 @@ class PainterGUI(QtBaseClass):
             self.load_settings(arguments[1])
 
     def update_data(self):
+        self.update_gedcom()
+
+        if 'testers' in self.data:
+            tester_list = self.ui.listTesters
+            matches_list = self.ui.listMatches
+
+            self.model_testers = ModelTesters(
+                tester_list, testers=self.data['testers'])
+            tester_list.setModel(self.model_testers)
+            self.ui.listTesters.selectionModel().currentChanged.connect(self.select_tester)
+
+            self.model_matches = ModelMatches(matches_list, matches={})
+            matches_list.setModel(self.model_matches)
+
+    def update_gedcom(self):
         gedfile = self.ui.inputGedcom.text()
         self.data['gedfile'] = os.path.relpath(gedfile, self.workingdirectory)
+        self.gedcom = GedcomManipulator(self.data['gedfile'])
+        if self.gedcom is not None:
+            self.ui.btnAddTester.setEnabled(True)
 
     def add_tester(self):
         dialog = Ui_AddTesterDialog(self, self.gedcom)
         if dialog.exec_():
             self.matches.add_tester(**dialog.tester)
+            self.update_data()
             self.model_testers.layoutChanged.emit()
 
     def edit_tester(self):
@@ -111,8 +131,8 @@ class PainterGUI(QtBaseClass):
             tester['xref'] = dialog.tester['xref']
             if 'shared_segments' not in tester:
                 tester['shared_segments'] = {}
-            tester['shared_segments']['myheritage'] = dialog.tester['shared_segments']['myheritage']
-            tester['shared_segments']['ftdna'] = dialog.tester['shared_segments']['ftdna']
+            tester['shared_segments']['myheritage'] = dialog.tester['myheritage']
+            tester['shared_segments']['ftdna'] = dialog.tester['ftdna']
 
     def add_match(self):
         dialog = Ui_AddMatchDialog(self, self.gedcom, self.selected_tester)
@@ -137,39 +157,30 @@ class PainterGUI(QtBaseClass):
         os.chdir(self.workingdirectory)
 
         self.settings_filename = os.path.basename(filename)
-        print(self.settings_filename)
 
         self.ui.inputGedcom.setText(os.path.realpath(os.path.join(
             self.workingdirectory, self.data['gedfile'])))
-        self.gedcom = GedcomManipulator(self.data['gedfile'])
-
-        tester_list = self.ui.listTesters
-        matches_list = self.ui.listMatches
-        if 'testers' in self.data:
-            self.model_testers = ModelTesters(
-                tester_list, testers=self.data['testers'])
-            tester_list.setModel(self.model_testers)
-            self.ui.listTesters.selectionModel().currentChanged.connect(self.select_tester)
-
-            self.model_matches = ModelMatches(matches_list, matches={})
-            matches_list.setModel(self.model_matches)
+        
+        self.update_data()
 
     def save_settings(self, filename=None):
+        if filename is None and self.settings_filename is None:
+            return self.saveAsDialog()
         if filename is None:
             filename = self.settings_filename
-        with open(filename, 'w') as f:
-            json.dump(self.data, f, indent=4)
+        # with open(filename, 'w') as f:
+        #     json.dump(self.data, f, indent=4)
+        self.matches.save(filename)
 
     def openDialog(self):
-        fname = QFileDialog.getOpenFileName(self, "Open file", '')
-        # self.matches = Matches(fname[0])
-
-        # tester_list = self.ui.listTesters
+        fname = QFileDialog.getOpenFileName(
+            self, "Open settings", '.', "Settings files (*.json);;All files (*)")
         if len(fname[0]) > 0:
             self.load_settings(fname[0])
 
     def saveAsDialog(self):
-        fname = QFileDialog.getSaveFileName(self, "Save file", '')
+        fname = QFileDialog.getSaveFileName(
+            self, "Save file", '.', "Settings files (*.json);;All files (*)")
         if len(fname[0]) > 0:
             self.save_settings(fname[0])
 

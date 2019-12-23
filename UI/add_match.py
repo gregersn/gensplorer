@@ -1,3 +1,6 @@
+#!/usr/bin/env python3
+
+import os
 from PyQt5 import uic
 from PyQt5.QtCore import Qt, QStringListModel
 from PyQt5.QtWidgets import QCompleter
@@ -20,7 +23,7 @@ class Ui_AddMatchDialog(QtBaseClass):
 
         if 'shared_segments' in self.tester:
             shared_segments = self.tester['shared_segments']
-            if 'myheritage' in shared_segments:
+            if 'myheritage' in shared_segments and os.path.isfile(shared_segments['myheritage']):
                 myheritage_data = [m['matchname']
                                    for m in DNAProvider.parse_matchfile('myheritage', shared_segments['myheritage'])]
 
@@ -34,7 +37,7 @@ class Ui_AddMatchDialog(QtBaseClass):
                 completer.setModel(model)
                 model.setStringList(myheritage_data)
 
-            if 'ftdna' in shared_segments:
+            if 'ftdna' in shared_segments and os.path.isfile(shared_segments['ftdna']):
                 ftdna_data = [m['matchname']
                               for m in DNAProvider.parse_matchfile('ftdna', shared_segments['ftdna'])]
 

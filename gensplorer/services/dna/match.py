@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from typing import Dict
 import json
-
+import os
 from .provider import DNAProvider
 from .utils import match_overlap
 
@@ -32,6 +32,7 @@ class Match:
 
 class Matches(object):
     def __init__(self, data: str or {}):
+        self.workingdir = '.'
         self.data = {}
 
         if type(data) == str:
@@ -40,9 +41,33 @@ class Matches(object):
         else:
             self.data = data
 
+    def save(self, filename):
+        print("Saving")
+        self.workingdir = os.path.dirname(filename)
+        if 'gedfile' in self.data:
+            self.data['gedfile'] = os.path.relpath(self.data['gedfile'], self.workingdir)
+
+        for tester in self.testers:
+            if 'shared_segments' in tester:
+                if 'ftdna' in tester['shared_segments'] and len(tester['shared_segments']['ftdna']) > 0:
+                    tester['shared_segments']['ftdna'] = os.path.relpath(tester['shared_segments']['ftdna'], self.workingdir)
+
+                if 'myheritage' in tester['shared_segments'] and len(tester['shared_segments']['myheritage']) > 0:
+                    tester['shared_segments']['myheritage'] = os.path.relpath(tester['shared_segments']['myheritage'], self.workingdir)
+
+        with open(filename, 'w') as f:
+            json.dump(self.data, f, indent=4)
+
     @property
     def gedfile(self):
         return self.data['gedfile']
+
+    @property
+    def testers(self):
+        if 'testers' in self.data:
+            return self.data['testers']
+
+        return []
 
     def get_tester(self, name: str):
         for tester in self.data['testers']:
@@ -52,6 +77,9 @@ class Matches(object):
     def get_matches(self, tester: str):
         """Get matches for a named tester."""
         matches = {}
+        if 'matches' not in self.data:
+            return matches
+
         for match in self.data['matches']:
             if tester in match['matches']:
                 matches[match['xref']] = match
@@ -59,6 +87,9 @@ class Matches(object):
 
     def get_match(self, xref: str):
         """Check if a certain xref has an entry as a matcher."""
+        if 'matches' not in self.data:
+            return None
+
         for match in self.data['matches']:
             if match['xref'] == xref:
                 return match
@@ -87,6 +118,8 @@ class Matches(object):
 
         match = self.get_match(xref)
         if match is None:
+            if 'matches' not in self.data:
+                self.data['matches'] = []
             self.data['matches'].append({
                 'xref': xref,
                 'ftdna': ftdna,
