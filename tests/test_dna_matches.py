@@ -1,77 +1,68 @@
+#!/usr/bin/env python3
+
 import os
-import unittest
 import tempfile
-import shutil
+import unittest
 
-from gensplorer.services.dna.profile import Profile
-from gensplorer.services.dna.match import Match
-from gensplorer.services.dna.provider import DNAProvider
+from gensplorer.services.dna.match import Matches
 
 
-class TestMatches(unittest.TestCase):
+class TestPaths(unittest.TestCase):
     def setUp(self):
-        self.datafolder = tempfile.mkdtemp() 
-        self.profile = Profile('@testmatches@', self.datafolder)
+        self.tempfile = tempfile.NamedTemporaryFile(delete=False)
+        self.workdirectory = os.path.dirname(self.tempfile.name)
 
     def tearDown(self):
-        self.profile.delete()
-        shutil.rmtree(self.datafolder)
+        if os.path.isfile(self.tempfile.name):
+            os.unlink(self.tempfile.name)
 
-    def test_add_match(self):
-        match = Match('@I0002')
-        match.add_matchdata(DNAProvider.ftdna, "dummydata")
-        self.profile.add_match(match)
+    def test_workdir(self):
+        matches = Matches({})
+        matches.save(self.tempfile.name)
 
-        self.assertIsNotNone(self.profile.find_match('@I0002'))
-        self.assertEqual(self.profile.matchcount,
-                         1, self.profile.matches)
+        self.assertEqual(matches.workingdir,
+                         os.path.dirname(self.tempfile.name))
 
-    def test_add_multiple_matches(self):
-        match = Match('matcha')
-        match.add_matchdata(DNAProvider.ftdna, "dasdfasd")
-        self.profile.add_match(match)
+    def test_set_gedcom_in_same_folder(self):
+        matches = Matches({})
 
-        match2 = Match('matchb')
-        match2.add_matchdata(DNAProvider.myheritage, "asldkfjasd")
-        self.profile.add_match(match2)
+        matches.gedfile = os.path.join(
+            os.path.dirname(self.tempfile.name),
+            'test.ged')
+        matches.save(self.tempfile.name)
 
-        self.assertIsNotNone(self.profile.find_match(
-            'matcha'), self.profile.matches)
-        self.assertIsNotNone(self.profile.find_match(
-            'matchb'), self.profile.matches)
-        self.assertEqual(self.profile.matchcount,
-                         2)
+        self.assertEqual(matches.gedfile, 'test.ged')
 
-    def test_add_more_to_match(self):
-        match = Match('matcha')
-        match.add_matchdata(DNAProvider.ftdna, '1234567')
-        self.profile.add_match(match)
+    def test_set_gedcom_parent(self):
+        matches = Matches({})
 
-        self.assertEqual(self.profile.matchcount, 1)
+        matches.gedfile = os.path.abspath(os.path.join(
+            os.path.dirname(self.tempfile.name), '..', 'test.ged'))
 
-        self.profile.add_matchdata('matcha', DNAProvider.myheritage, '7654321')
+        matches.save(self.tempfile.name)
 
-        self.assertEqual(self.profile.matchcount, 1)
+        self.assertEqual(matches.gedfile, '../test.ged')
 
-        match = self.profile.find_match('matcha')
-        self.assertEqual(match.matchdata[DNAProvider.ftdna], '1234567')
-        self.assertEqual(match.matchdata[DNAProvider.myheritage], '7654321')
+    def test_set_gedom_in_subfolder(self):
+        matches = Matches({})
+        matches.gedfile = os.path.join(os.path.dirname(
+            self.tempfile.name), 'ged', 'test.ged')
+        matches.save(self.tempfile.name)
+        self.assertEqual(matches.gedfile, 'ged/test.ged')
 
-    def test_match_overlap(self):
-        profile = Profile('testprofile', self.datafolder)
-        profile.import_matches(DNAProvider.ftdna, os.path.dirname(__file__) + '/ftdna_test_set_3.csv')
+    def test_set_tester_dna_match_file(self):
+        matches = Matches({})
+        matches.gedfile = os.path.join(self.workdirectory, "test.ged")
 
-        self.assertEqual(profile.matchcount, 3)
+        matches.add_tester("a", "a", ftdna=os.path.join(
+            self.workdirectory, "test.csv"),
+            myheritage=os.path.join(self.workdirectory, "../test.csv"))
 
-        match_a: Match = profile.find_match(name="A B")
-        match_b: Match = profile.find_match(name="C D")
-        match_c: Match = profile.find_match(name="E F")
+        matches.save(self.tempfile.name)
 
-        self.assertTrue(match_a.matches(match_b))
-        self.assertTrue(match_b.matches(match_a))
+        a = matches.get_tester("a")
+        self.assertEqual(a['shared_segments']['ftdna'],
+                         "test.csv")
 
-        self.assertFalse(match_a.matches(match_c))
-        self.assertFalse(match_c.matches(match_a))
-
-        self.assertFalse(match_b.matches(match_c))
-        self.assertFalse(match_c.matches(match_b))
+        self.assertEqual(a['shared_segments']['myheritage'],
+                         "../test.csv")

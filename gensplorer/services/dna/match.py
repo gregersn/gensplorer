@@ -1,18 +1,14 @@
 from dataclasses import dataclass, field
-from typing import Dict
+from typing import Dict, Union
 import json
 import os
 from .provider import DNAProvider
 from .utils import match_overlap
 
 
-class Match:
-    pass
-
-
 @dataclass
 class Match:
-    xref: str = None
+    xref: Union[str, None] = None
     name: str = "unnamed"
     matchdata: Dict = field(default_factory=lambda: {})
 
@@ -20,22 +16,24 @@ class Match:
         self.matchdata[provider] = data
 
     def to_dict(self):
-        return {'xref': self.xref, 'name': self.name, 'matchdata': self.matchdata}
+        return {'xref': self.xref,
+                'name': self.name,
+                'matchdata': self.matchdata}
 
     def from_json(self, data):
         for key, value in data.items():
             self.add_matchdata(DNAProvider[key], value)
 
-    def matches(self, other: Match) -> bool:
+    def matches(self, other: "Match") -> bool:
         return match_overlap(self.matchdata['ftdna'], other.matchdata['ftdna'])
 
 
 class Matches(object):
-    def __init__(self, data: str or {}):
+    def __init__(self, data: Union[str, Dict]) -> None:
         self.workingdir = '.'
-        self.data = {}
+        self.data: Dict = {}
 
-        if type(data) == str:
+        if isinstance(data, str):
             with open(data, 'r') as f:
                 self.data = json.load(f)
         else:
@@ -45,22 +43,33 @@ class Matches(object):
         print("Saving")
         self.workingdir = os.path.dirname(filename)
         if 'gedfile' in self.data:
-            self.data['gedfile'] = os.path.relpath(self.data['gedfile'], self.workingdir)
+            self.data['gedfile'] = os.path.relpath(
+                self.data['gedfile'], self.workingdir)
 
         for tester in self.testers:
             if 'shared_segments' in tester:
-                if 'ftdna' in tester['shared_segments'] and len(tester['shared_segments']['ftdna']) > 0:
-                    tester['shared_segments']['ftdna'] = os.path.relpath(tester['shared_segments']['ftdna'], self.workingdir)
+                if ('ftdna' in tester['shared_segments']
+                        and len(tester['shared_segments']['ftdna']) > 0):
+                    tester['shared_segments']['ftdna'] = os.path.relpath(
+                        tester['shared_segments']['ftdna'], self.workingdir)
 
-                if 'myheritage' in tester['shared_segments'] and len(tester['shared_segments']['myheritage']) > 0:
-                    tester['shared_segments']['myheritage'] = os.path.relpath(tester['shared_segments']['myheritage'], self.workingdir)
+                if ('myheritage' in tester['shared_segments']
+                        and len(tester['shared_segments']['myheritage']) > 0):
+                    tester['shared_segments']['myheritage'] = os.path.relpath(
+                        tester['shared_segments']['myheritage'],
+                        self.workingdir)
 
         with open(filename, 'w') as f:
             json.dump(self.data, f, indent=4)
 
     @property
     def gedfile(self):
-        return self.data['gedfile']
+        if 'gedfile' in self.data:
+            return self.data['gedfile']
+
+    @gedfile.setter
+    def gedfile(self, filename):
+        self.data['gedfile'] = filename
 
     @property
     def testers(self):
@@ -76,7 +85,7 @@ class Matches(object):
 
     def get_matches(self, tester: str):
         """Get matches for a named tester."""
-        matches = {}
+        matches: Dict = {}
         if 'matches' not in self.data:
             return matches
 
@@ -112,7 +121,7 @@ class Matches(object):
             }
         })
 
-    def add_match(self, tester: str, xref: str, ftdna, myheritage):
+    def add_match(self, tester: Dict, xref: str, ftdna, myheritage):
         if tester not in self.data['testers']:
             raise Exception
 
