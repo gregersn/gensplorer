@@ -29,6 +29,19 @@ myheritage_mappings = {
     "snps": "SNPs"
 }
 
+myheritage_mappings_no = {
+    "DNA Match ID": "myheritageid",
+    "name": "Navn",
+    "matchname": "Sammenlign navn",
+    "chromosome": "Kromosom",
+    "start": "Start plassering",
+    "end": "Stopp plassering",
+    "startRSID": "Start RSID",
+    "endRSID": "Slutt RSID",
+    "centimorgans": "Centimorganer",
+    "snps": "SNPer"
+}
+
 
 def dict2dict(input, mapping):
     output = {}
@@ -67,7 +80,8 @@ class DNAProvider(str, Enum):
     @staticmethod
     def parse_overlap_myheritage(data):
         mappings = {k: myheritage_mappings[k] for k in (
-            'chromosome', 'start', 'end', 'centimorgans', 'name', 'matchname', 'snps')}
+            'chromosome', 'start', 'end',
+            'centimorgans', 'name', 'matchname', 'snps')}
         # Idiotic hack because MyHeritage can't decide on casing
         mappings['matchname'] = "Match Name"
         f = StringIO(data)
@@ -103,19 +117,25 @@ class DNAProvider(str, Enum):
 
     @staticmethod
     def parse_matchfile_myheritage(data):
-        mappings = {k: myheritage_mappings[k] for k in (
-            'chromosome', 'start', 'end', 'centimorgans', 'snps')}
-
         f = StringIO(data.decode('utf-8'))
         reader = csv.DictReader(f)
+
+        mappings = {k: myheritage_mappings[k] for k in (
+            'chromosome', 'start', 'end', 'centimorgans', 'snps')}
+        match_name_field = myheritage_mappings['matchname']
+
+        if "Sammenlign navn" in reader.fieldnames:
+            mappings = {k: myheritage_mappings_no[k] for k in (
+                'chromosome', 'start', 'end', 'centimorgans', 'snps')}
+            match_name_field = myheritage_mappings_no['matchname']
 
         current_name = None
         segments = []
         for row in reader:
-            if row['Match name'] != current_name:
+            if row[match_name_field] != current_name:
                 if current_name is not None:
                     yield {'segments': segments, 'matchname': current_name}
-                current_name = row['Match name']
+                current_name = row[match_name_field]
                 segments = []
 
             segments.append(dict2dict(row, mappings))

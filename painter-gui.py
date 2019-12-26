@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 import os
 import sys
-import json
 
 from PyQt5.QtWidgets import (QApplication,
                              QLabel, QWidget,
@@ -153,6 +152,8 @@ class PainterGUI(QtBaseClass):
         self.matches = Matches(filename)
         self.data = self.matches.data
         self.cwd = os.getcwd()
+        self.setWindowTitle(
+            "GEN-splorer: {}".format(os.path.abspath(filename)))
         self.workingdirectory = os.path.dirname(filename)
         os.chdir(self.workingdirectory)
 
@@ -160,7 +161,7 @@ class PainterGUI(QtBaseClass):
 
         self.ui.inputGedcom.setText(os.path.realpath(os.path.join(
             self.workingdirectory, self.data['gedfile'])))
-        
+
         self.update_data()
 
     def save_settings(self, filename=None):
@@ -171,6 +172,8 @@ class PainterGUI(QtBaseClass):
         # with open(filename, 'w') as f:
         #     json.dump(self.data, f, indent=4)
         self.matches.save(filename)
+        self.setWindowTitle(
+            "GEN-splorer: {}".format(os.path.abspath(filename)))
 
     def openDialog(self):
         fname = QFileDialog.getOpenFileName(
@@ -257,15 +260,8 @@ def main():
     app = QApplication(sys.argv)
     pgui = PainterGUI(app.arguments())
     sys.exit(app.exec_())
-    """
-    app = QApplication(sys.argv)
-    MainWindow = QMainWindow()
-    ui = Ui_MainWindow()
-    ui.setupUi(MainWindow)
-    MainWindow.show()
-    sys.exit(app.exec_())
-    """
 
 
 if __name__ == "__main__":
+    # cProfile.run("main()")
     main()
