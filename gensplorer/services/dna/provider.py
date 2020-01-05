@@ -1,5 +1,7 @@
 import csv
+import chardet
 from io import StringIO
+from io import IOBase
 import zipfile
 import os
 
@@ -41,7 +43,6 @@ myheritage_mappings_no = {
     "centimorgans": "Centimorganer",
     "snps": "SNPer"
 }
-
 
 def dict2dict(input, mapping):
     output = {}
@@ -149,9 +150,15 @@ class DNAProvider(str, Enum):
             filename = ".".join(os.path.basename(
                 datafile).split('.')[0:-1]) + ".csv"
             with zipfile.ZipFile(datafile) as zipped:
+                charset = None
                 with zipped.open(filename) as f:
+                    charset = chardet.detect(f.read(10000))
+                with zipped.open(filename,  mode="r") as f:
                     data = f.read()
         else:
+            charset = None
+            with open(datafile, 'rb') as f:
+                charset = chardet.detect(f.read(10000))
             with open(datafile, 'rb') as f:
                 data = f.read()
 
