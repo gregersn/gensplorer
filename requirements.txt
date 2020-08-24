@@ -1,6 +1,6 @@
 PyQt5
 beautifulsoup4
 requests
-git+https://github.com/gregersn/gedcompy.git
+python-gedcom
 pytest
 pytest-cov

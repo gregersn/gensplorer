@@ -1,18 +1,24 @@
-import gedcom
+from gedcom.element.individual import IndividualElement
+from gedcom.parser import Parser
 
 
 class GedcomManipulator(object):
     def __init__(self, filename):
         self.filename = filename
-        self.gedcom = gedcom.parse(self.filename)
+        self.gedcom = Parser()
+        self.gedcom.parse_file(self.filename)
         self.names = None
 
     @property
     def namelist(self):
         if self.names is None:
             self.names = []
-            for indi in self.gedcom.individuals:
-                self.names.append((indi.id, " ".join(indi.name)))
+            root_child_elements = self.gedcom.get_root_child_elements()
+
+            for element in root_child_elements:
+                if isinstance(element, IndividualElement):
+                    self.names.append((element.get_pointer(),
+                                       " ".join(element.get_name())))
 
         return self.names
 
