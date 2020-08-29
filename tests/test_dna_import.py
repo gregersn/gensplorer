@@ -24,7 +24,7 @@ class TestImport(unittest.TestCase):
 
         match_a: Match = profile.matches[0]
 
-        self.assertEqual(match_a.name, "A B")
+        self.assertEqual(match_a.name, "Marcus")
         self.assertIn('1', match_a.matchdata['ftdna'])
 
     def test_myheritage_import(self):

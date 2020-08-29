@@ -2,11 +2,12 @@ import os
 from gedcom.element.individual import IndividualElement
 from gedcom.parser import Parser
 
+
 class GedcomManipulator(object):
     def __init__(self, filename):
         self.filename = filename
-        assert os.path.isfile(filename)
-        self.gedcom = Parser()
+        assert os.path.isfile(filename), filename
+        self.gedcom: Parser = Parser()
         self.gedcom.parse_file(self.filename)
 
         self.names = None
@@ -23,6 +24,113 @@ class GedcomManipulator(object):
                                        " ".join(element.get_name())))
 
         return self.names
+    
+    def get_individual(self, xref: str) -> IndividualElement:
+        root_child_elements = self.gedcom.get_root_child_elements()
+        for element in root_child_elements:
+            if xref == element.get_pointer():
+                return element
+        
+        return None
+
+    def search_children(self, start: IndividualElement,
+                        target: IndividualElement):
+        best_result = None
+        print(start)
+        """
+        if 'FAMS' not in start:
+            return None
+
+        children = []
+        if type(start['FAMS']) == list:
+            for f in start['FAMS']:
+                children += f.as_individual().children
+        else:
+            children = start['FAMS'].as_individual().children
+
+        for child in children:
+            if child.as_individual() == target:
+                return [start, target, ]
+
+            res = self.search_children(child.as_individual(), target)
+            if res is not None:
+                if best_result is None or len(res) < len(best_result):
+                    best_result = [start, ] + res
+
+        """
+        return best_result
+
+
+    def search_siblings(self, start: IndividualElement,
+                        target: IndividualElement):
+        best_result = None
+        if 'FAMC' not in start:
+            return None
+
+        if start == target:
+            return [target, ]
+
+        children = []
+        if type(start['FAMC']) == list:
+            for f in start['FAMC']:
+                children += f.as_individual().children
+        else:
+            children = start['FAMC'].as_individual().children
+
+        for child in children:
+            if child.as_individual() == start:
+                continue
+
+            if child.as_individual() == target:
+                return [start, target, ]
+
+            res = self.search_children(child.as_individual(), target)
+            if res is not None:
+                if best_result is None or len(res) < len(best_result):
+                    best_result = [start, ] + res
+
+        return best_result
+
+    def search(self, start: IndividualElement, target: IndividualElement):
+        best_result = None
+
+        if start == target:
+            return [target, ]
+
+        parents = start.parents
+        for parent in parents:
+            res = self.search(parent, target)
+            if res is not None:
+                if best_result is None or len(res) < len(best_result):
+                    best_result = [start, ] + res
+
+        res = self.search_siblings(start, target)
+        if res is not None:
+            if best_result is None or len(res) < len(best_result):
+                best_result = res
+
+        res = self.search_children(start, target)
+        if res is not None:
+            if best_result is None or len(res) < len(best_result):
+                best_result = res
+
+        return best_result
+
+    def find_common(self, xref_a: str, xref_b: str) -> str:
+        """Find common ancestors of two individuals."""
+        if xref_a == xref_b:
+            return self.get_individual(xref_a).get_parent_element().get_pointer()
+
+        a = self.get_individual(xref_a)
+        if a is None:
+            raise FileNotFoundError(xref_a)
+        b = self.get_individual(xref_b)
+        if b is None:
+            raise FileNotFoundError(xref_b)
+
+        res = self.search(a, b)
+        print(res)
+        return None
 
     def get_cousins(self, _id, level=2):
         """Find all cousins of given distance."""

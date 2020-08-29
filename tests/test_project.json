@@ -1,0 +1,23 @@
+{
+    "gedfile": "test.ged",
+    "testers": [
+        {
+            "xref": "I4588",
+            "name": "cassandra",
+            "shared_segments": {
+                "myheritage": "",
+                "ftdna": "ftdna_test_set_1.csv"
+            }
+        }
+    ],
+    "matches": [
+        {
+            "xref": "I4580",
+            "ftdna": "Marcus",
+            "myheritage": "",
+            "matches": [
+                "cassandra"
+            ]
+        }
+    ]
+}

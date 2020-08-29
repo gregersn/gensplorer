@@ -82,8 +82,10 @@ class PainterGUI(QtBaseClass):
         self.ui.btnAddTester.clicked.connect(self.add_tester)
         self.ui.btnEditTester.clicked.connect(self.edit_tester)
         self.ui.btnAddMatch.clicked.connect(self.add_match)
+        self.ui.btnDNAReport.clicked.connect(self.dna_report)
         self.ui.btnAddMatch.setEnabled(False)
         self.ui.btnAddTester.setEnabled(False)
+        self.ui.btnDNAReport.setEnabled(False)
         self.ui.inputGedcom.textChanged.connect(self.update_gedcom)
 
         self.initmenu()
@@ -138,11 +140,15 @@ class PainterGUI(QtBaseClass):
         if dialog.exec_():
             self.matches.add_match(self.selected_tester, **dialog.matcher)
             self.model_matches.layoutChanged.emit()
+    
+    def dna_report(self):
+        print(f"Create DNA report for {self.selected_tester}")
 
     def select_tester(self, current, previous):
         if current.row() > -1:
             self.ui.btnAddMatch.setEnabled(True)
             self.ui.btnEditTester.setEnabled(True)
+            self.ui.btnDNAReport.setEnabled(True)
         self.selected_tester = self.data['testers'][current.row()]
         matches = self.matches.get_matches(self.selected_tester['name'])
         self.model_matches.matches = matches
